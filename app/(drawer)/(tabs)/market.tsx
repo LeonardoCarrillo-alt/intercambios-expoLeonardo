@@ -27,17 +27,17 @@ const createStyles = (colors: ThemeColors) =>
     },
   });
 
-const ProductsScreen = () => {
+const MarketScreen = () => {
   const { colors } = useThemeColors();
   const styles = React.useMemo(() => createStyles(colors), [colors]);
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: 'Productos' }} />
+      <Stack.Screen options={{ title: 'Mercado' }} />
       <Text style={styles.title}>Listado de productos</Text>
       <Text style={styles.copy}>Aquí aparecerán los productos disponibles.</Text>
     </View>
   );
 };
 
-export default ProductsScreen;
+export default MarketScreen;

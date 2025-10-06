@@ -29,9 +29,9 @@ const TabsLayout = () => {
         }}
       />
       <Tabs.Screen
-        name="products"
+        name="market"
         options={{
-          title: 'Productos',
+          title: 'Mercado',
           tabBarIcon: ({ color, focused, size }) => (
             <Ionicons
               name={focused ? 'pricetags' : 'pricetags-outline'}
@@ -42,11 +42,20 @@ const TabsLayout = () => {
         }}
       />
       <Tabs.Screen
-        name="settings"
+        name="publish"
         options={{
-          title: 'Configuracion',
+          title: 'Publicar',
           tabBarIcon: ({ color, focused, size }) => (
-            <Ionicons name={focused ? 'settings' : 'settings-outline'} size={size} color={color} />
+            <Ionicons name={focused ? 'create' : 'create-outline'} size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Perfil',
+          tabBarIcon: ({ color, focused, size }) => (
+            <Ionicons name={focused ? 'person' : 'person-outline'} size={size} color={color} />
           ),
         }}
       />

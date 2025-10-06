@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { useThemeColors } from '../../hooks/useThemeColors';
 import type { ThemeColors } from '../../theme/colors';
+import { Header } from '../../components/firstScreen/login';
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
@@ -11,7 +12,7 @@ const createStyles = (colors: ThemeColors) =>
       flex: 1,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.background,
+      backgroundColor: 'orange',
       padding: 24,
     },
     title: {
@@ -41,8 +42,9 @@ export default function DashboardScreen() {
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ title: 'Inicio' }} />
-      <Text style={styles.title}>Bienvenido a Routes App</Text>
-      <Text style={styles.subtitle}>Esta es la ruta raíz registrada por Expo Router.</Text>
+      <Text style={styles.title}>Bienvenido a Intercambio UPB</Text>
+      <Text style={styles.subtitle}>Ingrese sus datos para registrarse</Text>
+      <Header user={{ name: 'Leonardo Carrillo' }} onLogout={() => {}} />
       <Link href="/profile" style={styles.link}>
         Ir al perfil →
       </Link>
