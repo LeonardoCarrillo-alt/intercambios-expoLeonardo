@@ -2,8 +2,8 @@ import React from 'react';
 import { Stack } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { useThemeColors } from '../../hooks/useThemeColors';
-import type { ThemeColors } from '../../theme/colors';
+import { useThemeColors } from '../../../hooks/useThemeColors';
+import type { ThemeColors } from '../../../theme/colors';
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
