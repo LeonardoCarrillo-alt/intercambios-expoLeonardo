@@ -1,43 +1,43 @@
 import React from 'react';
 import { Stack } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
-
+import { ScrollView, Text, StyleSheet } from 'react-native';
 import { useThemeColors } from '../../../hooks/useThemeColors';
-import type { ThemeColors } from '../../../theme/colors';
+import { ThemeColors } from '../../../theme/colors';
+
+import CategoryList from '../../../components/market/CategoryList';
+import ProductList from '../../../components/market/ProductList';
+
+const MarketScreen: React.FC = () => {
+  const { colors } = useThemeColors();
+  const styles = React.useMemo(() => createStyles(colors), [colors]);
+
+  return (
+    <ScrollView style={styles.container}>
+      <Stack.Screen options={{ title: 'Mercado' }} />
+
+      <Text style={styles.sectionTitle}>Categorías</Text>
+      <CategoryList />
+
+      <Text style={styles.sectionTitle}>Productos</Text>
+      <ProductList />
+    </ScrollView>
+  );
+};
+
+export default MarketScreen;
+
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
       backgroundColor: colors.background,
-      padding: 24,
+      padding: 16,
     },
-    title: {
-      fontSize: 24,
+    sectionTitle: {
+      fontSize: 20,
       fontWeight: '700',
       color: colors.text,
-      marginBottom: 12,
-      textAlign: 'center',
-    },
-    copy: {
-      textAlign: 'center',
-      color: colors.subtitle,
+      marginVertical: 12,
     },
   });
-
-const MarketScreen = () => {
-  const { colors } = useThemeColors();
-  const styles = React.useMemo(() => createStyles(colors), [colors]);
-
-  return (
-    <View style={styles.container}>
-      <Stack.Screen options={{ title: 'Mercado' }} />
-      <Text style={styles.title}>Listado de productos</Text>
-      <Text style={styles.copy}>Aquí aparecerán los productos disponibles.</Text>
-    </View>
-  );
-};
-
-export default MarketScreen;
