@@ -33,19 +33,6 @@ const TabsLayout = () => {
         }}
       />
       <Tabs.Screen
-        name="market/index"
-        options={{
-          title: 'Mercado',
-          tabBarIcon: ({ color, focused, size }) => (
-            <Ionicons
-              name={focused ? 'cart' : 'cart-outline'}
-              size={size}
-              color={color}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="publish/index"
         options={{
           title: 'Publicar',
