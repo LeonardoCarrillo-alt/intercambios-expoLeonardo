@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Redirect } from 'expo-router';
 import LoginPage from './login';
 

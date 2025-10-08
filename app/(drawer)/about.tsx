@@ -1,4 +1,4 @@
-import React from 'react';
+import {useMemo} from 'react';
 import { FlatList, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
 import { useThemeColors } from '../hooks/useThemeColors';
@@ -45,7 +45,7 @@ const createStyles = (colors: ThemeColors) =>
 
 const AboutScreen = () => {
   const { colors } = useThemeColors();
-  const styles = React.useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   return (
     <SafeAreaView style={styles.safeArea}>

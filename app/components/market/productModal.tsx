@@ -1,4 +1,4 @@
-import React from 'react';
+import {FC,useMemo} from 'react';
 import {
   Modal,
   View,
@@ -124,14 +124,14 @@ const createStyles = (colors: ThemeColors) =>
     },
   });
 
-const ProductModal: React.FC<ProductModalProps> = ({
+const ProductModal: FC<ProductModalProps> = ({
   visible,
   product,
   onClose,
   TradeNow,
 }) => {
   const { colors } = useThemeColors();
-  const styles = React.useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   if (!product) return null;
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import {useMemo} from 'react';
 import { Stack } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -29,7 +29,7 @@ const createStyles = (colors: ThemeColors) =>
 
 const ProfileScreen = () => {
   const { colors } = useThemeColors();
-  const styles = React.useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   return (
     <View style={styles.container}>

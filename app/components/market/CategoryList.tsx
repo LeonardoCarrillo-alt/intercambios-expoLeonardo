@@ -1,59 +1,82 @@
 import React from 'react';
-import { ScrollView, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { FlatList, Pressable, Text, StyleSheet } from 'react-native';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { ThemeColors } from '../../theme/colors';
+import { useMarketStore } from '../../store/useMarketStore';
 
-interface Category {
-  id: string;
-  name: string;
-}
-
-const categories: Category[] = [
-  { id: '1', name: 'Electrónica' },
-  { id: '2', name: 'Ropa' },
-  { id: '3', name: 'Libros' },
-  { id: '4', name: 'Hogar' },
-  { id: '5', name: 'Deportes' },
+const categories = [
+  { id: '1', name: 'Todas' },
+  { id: '2', name: 'Electrónica' },
+  { id: '3', name: 'Ropa' },
+  { id: '4', name: 'Libros' },
+  { id: '5', name: 'Hogar' },
+  { id: '6', name: 'Deportes' },
 ];
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
-    categoriesContainer: {
-      flexDirection: 'row',
-      marginBottom: 8,
-    },
-    categoryCard: {
-      backgroundColor: 'yellow',
-      padding: 12,
-      borderRadius: 12,
+    container: { paddingVertical: 8 },
+    card: {
+      paddingVertical: 10,
+      paddingHorizontal: 18,
+      borderRadius: 20,
       marginRight: 10,
-      shadowColor: '#000',
-      shadowOpacity: 0.1,
-      shadowRadius: 3,
-      elevation: 3,
+      borderWidth: 1,
     },
-    categoryText: {
-      color: colors.text,
+    selected: {
+      backgroundColor: colors.primary,
+    },
+    text: {
       fontWeight: '600',
+    },
+    textSelected: {
+      color: 'white',
     },
   });
 
 const CategoryList: React.FC = () => {
   const { colors } = useThemeColors();
+  const { selectedCategory, setCategory } = useMarketStore();
   const styles = React.useMemo(() => createStyles(colors), [colors]);
 
   return (
-    <ScrollView
+    <FlatList
+      data={categories}
+      keyExtractor={(item) => item.id}
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.categoriesContainer}
-    >
-      {categories.map((cat) => (
-        <TouchableOpacity key={cat.id} style={styles.categoryCard}>
-          <Text style={styles.categoryText}>{cat.name}</Text>
-        </TouchableOpacity>
-      ))}
-    </ScrollView>
+      contentContainerStyle={styles.container}
+      renderItem={({ item }) => {
+        const isSelected =
+          selectedCategory === item.name ||
+          (selectedCategory === null && item.name === 'Todas');
+        return (
+          <Pressable
+            onPress={() =>
+              setCategory(item.name === 'Todas' ? null : item.name)
+            }
+            style={[
+              styles.card,
+              {
+                borderColor: isSelected ? colors.primary : colors.border,
+                backgroundColor: isSelected
+                  ? colors.primary
+                  : colors.surface,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.text,
+                { color: isSelected ? 'white' : colors.text },
+              ]}
+            >
+              {item.name}
+            </Text>
+          </Pressable>
+        );
+      }}
+    />
   );
 };
 

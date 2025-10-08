@@ -1,5 +1,4 @@
 import { Pressable, Text, Image } from 'react-native';
-import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
 import { useThemeColors } from '../../hooks/useThemeColors';
 

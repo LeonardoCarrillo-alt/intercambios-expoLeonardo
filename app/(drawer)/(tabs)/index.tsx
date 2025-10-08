@@ -1,34 +1,45 @@
-import React from 'react';
+import {useMemo} from 'react';
 import { Stack } from 'expo-router';
-import { ScrollView, Text, StyleSheet } from 'react-native';
+import { Text, StyleSheet, FlatList, View } from 'react-native';
 import CategoryList from '../../components/market/CategoryList';
 import ProductList from '../../components/market/ProductList';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { ThemeColors } from '../../theme/colors';
+
 const MarketScreen: React.FC = () => {
   const { colors } = useThemeColors();
-  const styles = React.useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   return (
-    <ScrollView style={styles.container}>
+    <>
       <Stack.Screen options={{ title: 'Mercado' }} />
-
-      <Text style={styles.sectionTitle}>Categorías</Text>
-      <CategoryList />
-
-      <Text style={styles.sectionTitle}>Productos</Text>
-      <ProductList />
-    </ScrollView>
+      <FlatList
+        data={[{ key: 'categories' }, { key: 'products' }]}
+        renderItem={({ item }) => {
+          if (item.key === 'categories') {
+            return (
+              <View>
+                <Text style={styles.sectionTitle}>Categorías</Text>
+                <CategoryList />
+              </View>
+            );
+          }
+          return (
+            <View>
+              <Text style={styles.sectionTitle}>Productos</Text>
+              <ProductList />
+            </View>
+          );
+        }}
+        contentContainerStyle={styles.container}
+      />
+    </>
   );
 };
-
-export default MarketScreen;
-
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: {
-      flex: 1,
       backgroundColor: colors.background,
       padding: 16,
     },
@@ -39,4 +50,5 @@ const createStyles = (colors: ThemeColors) =>
       marginVertical: 12,
     },
   });
-  
+
+export default MarketScreen;

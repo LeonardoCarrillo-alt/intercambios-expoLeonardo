@@ -1,4 +1,3 @@
-import React from 'react';
 import { Drawer } from 'expo-router/drawer';
 
 import { useThemeColors } from '../hooks/useThemeColors';
