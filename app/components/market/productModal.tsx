@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { ThemeColors } from '../../theme/colors';
-import { Product } from './ProductList';
+import { Product } from './productCard';
 import { ScrollView } from 'react-native-gesture-handler';
 
 interface ProductModalProps {
@@ -147,7 +147,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
           <TouchableWithoutFeedback>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>{product.name}</Text>
+                <Text style={styles.modalTitle}>{product.title}</Text>
                 <TouchableOpacity style={styles.closeButton} onPress={onClose}>
                   <Text style={styles.closeButtonText}>✕</Text>
                 </TouchableOpacity>
@@ -165,14 +165,14 @@ const ProductModal: React.FC<ProductModalProps> = ({
                     {product.description || 'Descripción no disponible.'}
                 </Text>
                 <Text style={styles.modalDescription}>Estado:
-                    {product.estado || 'Estado no disponible.'}
+                    {product.condition || 'Estado no disponible.'}
                 </Text>
                 <Text style={styles.modalSubtitle}> Información del publicador: </Text>
                 <Text style={styles.modalUserInfo}> Nombre de usuario: 
-                    {product.userName || 'Nombre de usuario no disponible.'}
+                    {product.alias || 'Nombre de usuario no disponible.'}
                 </Text>
                 <Text style={styles.modalUserInfo}> Carrera: 
-                    {product.career || 'Carrera no disponible.'}
+                    {product.price || 'Carrera no disponible.'}
                 </Text>
               </ScrollView>
               <View style={styles.actionButtons}>
