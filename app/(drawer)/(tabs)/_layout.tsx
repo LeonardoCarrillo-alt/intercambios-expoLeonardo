@@ -24,17 +24,21 @@ const TabsLayout = () => {
         options={{
           title: 'Home',
           tabBarIcon: ({ color, focused, size }) => (
-            <Ionicons name={focused ? 'home' : 'home-outline'} size={size} color={color} />
+            <Ionicons 
+              name={focused ? 'home' : 'home-outline'} 
+              size={size} 
+              color={color} 
+            />
           ),
         }}
       />
       <Tabs.Screen
-        name="market"
+        name="market/index"
         options={{
           title: 'Mercado',
           tabBarIcon: ({ color, focused, size }) => (
             <Ionicons
-              name={focused ? 'pricetags' : 'pricetags-outline'}
+              name={focused ? 'cart' : 'cart-outline'}
               size={size}
               color={color}
             />
@@ -42,20 +46,41 @@ const TabsLayout = () => {
         }}
       />
       <Tabs.Screen
-        name="publish"
+        name="publish/index"
         options={{
           title: 'Publicar',
           tabBarIcon: ({ color, focused, size }) => (
-            <Ionicons name={focused ? 'create' : 'create-outline'} size={size} color={color} />
+            <Ionicons 
+              name={focused ? 'add-circle' : 'add-circle-outline'} 
+              size={size} 
+              color={color} 
+            />
           ),
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="profile/index"
         options={{
           title: 'Perfil',
           tabBarIcon: ({ color, focused, size }) => (
-            <Ionicons name={focused ? 'person' : 'person-outline'} size={size} color={color} />
+            <Ionicons 
+              name={focused ? 'person' : 'person-outline'} 
+              size={size} 
+              color={color} 
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="settings/index"
+        options={{
+          title: 'Configuracion',
+          tabBarIcon: ({ color, focused, size }) => (
+            <Ionicons 
+              name={focused ? 'settings' : 'settings-outline'} 
+              size={size} 
+              color={color} 
+            />
           ),
         }}
       />
