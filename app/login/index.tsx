@@ -11,7 +11,6 @@ import {
   ScrollView
 } from "react-native";
 import { useRouter } from 'expo-router';
-
 export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -102,8 +101,6 @@ export default function LoginPage() {
               {isLoading ? "Iniciando sesión..." : "Iniciar Sesión"}
             </Text>
           </TouchableOpacity>
-
-          {/* Sección de demo */}
           <View style={styles.demoSection}>
             <Text style={styles.demoTitle}>Credenciales de Demo:</Text>
             
