@@ -4,7 +4,7 @@ import { FlatList, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { useThemeColors } from '../hooks/useThemeColors';
 import type { ThemeColors } from '../theme/colors';
 
-const teamMembers = ['Integrante 1', 'Integrante 2'];
+const teamMembers = ['Leonardo Carrillo', 'Pablo Acha', 'Diego Gomez'];
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({

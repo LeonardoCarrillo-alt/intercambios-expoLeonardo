@@ -147,7 +147,7 @@ const ProductModal: FC<ProductModalProps> = ({
           <TouchableWithoutFeedback>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>{product.title}</Text>
+                <Text style={styles.modalTitle}>{product.title  }</Text>
                 <TouchableOpacity style={styles.closeButton} onPress={onClose}>
                   <Text style={styles.closeButtonText}>✕</Text>
                 </TouchableOpacity>
