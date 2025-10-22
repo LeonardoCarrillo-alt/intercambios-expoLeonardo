@@ -2,9 +2,9 @@ import React from 'react';
 import { Stack } from 'expo-router';
 import { StyleSheet, Switch, Text, View } from 'react-native';
 
-import { useThemeColors } from '../../../hooks/useThemeColors';
-import { useThemeStore } from '../../../store/useThemeStore';
-import type { ThemeColors } from '../../../theme/colors';
+import { useThemeColors } from '../../../../src/hooks/useThemeColors';
+import { useThemeStore } from '../../../../src/store/useThemeStore';
+import type { ThemeColors } from '../../../../src/theme/colors';
 
 const SettingsScreen = () => {
   const { theme, colors } = useThemeColors();

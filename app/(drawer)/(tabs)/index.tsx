@@ -1,10 +1,10 @@
 import {useMemo} from 'react';
 import { Stack } from 'expo-router';
 import { Text, StyleSheet, FlatList, View } from 'react-native';
-import CategoryList from '../../components/market/CategoryList';
-import ProductList from '../../components/market/ProductList';
-import { useThemeColors } from '../../hooks/useThemeColors';
-import { ThemeColors } from '../../theme/colors';
+import CategoryList from '../../../src/components/market/CategoryList';
+import ProductList from '../../../src/components/market/ProductList';
+import { useThemeColors } from '../../../src/hooks/useThemeColors';
+import { ThemeColors } from '../../../src/theme/colors';
 
 const MarketScreen: React.FC = () => {
   const { colors } = useThemeColors();

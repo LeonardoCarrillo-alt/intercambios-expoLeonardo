@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
 import { FlatList, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
-import { useThemeColors } from '../hooks/useThemeColors';
-import type { ThemeColors } from '../theme/colors';
+import { useThemeColors } from '../../src/hooks/useThemeColors';
+import type { ThemeColors } from '../../src/theme/colors';
 
 const teamMembers = ['Leonardo Carrillo', 'Pablo Acha', 'Diego Gomez'];
 
