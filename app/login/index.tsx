@@ -8,15 +8,18 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  ScrollView
+  ScrollView,
+  ActivityIndicator
 } from "react-native";
 import { useRouter } from 'expo-router';
-
+import { useAuth } from "../context/AuthContext";
 export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const { signIn, signInWithGoogle } = useAuth();
 
   const handleLogin = async () => {
     if (!username.trim() || !password.trim()) {
@@ -25,29 +28,28 @@ export default function LoginPage() {
     }
 
     setIsLoading(true);
-    setTimeout(() => {
-      if ((username === "admin" && password === "1234") ||
-          (username === "docente" && password === "5678") ||
-          (username === "estudiante" && password === "9012")) {
-        
-        Alert.alert("Éxito", "Inicio de sesión exitoso", [
-          {
-            text: "OK",
-            onPress: () => router.replace('/(drawer)/(tabs)')
-          }
-        ]);
-      } else {
-        Alert.alert("Error", "Usuario o contraseña incorrectos");
-        setIsLoading(false);
-      }
-    }, 1000);
+    const result = await signIn(username.trim(), password.trim());
+    setIsLoading(false);
+    if (result.success) {
+      Alert.alert('Éxito', 'Sesión iniciada correctamente');
+      router.replace('/(drawer)/(tabs)');
+    } else {
+      Alert.alert('Error', result.error || 'Error al iniciar sesión');
+      console.log(result);
+    }
   };
+  const handleGoogleLogin = async () => {
+    setIsGoogleLoading(true);
+    const result = await signInWithGoogle();
+    setIsGoogleLoading(false);
 
-  const handleDemoLogin = (demoUser, demoPass) => {
-    setUsername(demoUser);
-    setPassword(demoPass);
+    if (result.success) {
+      Alert.alert('Éxito', 'Sesión con Google iniciada correctamente');
+      router.replace('/(drawer)/(tabs)');
+    } else {
+      Alert.alert('Error', result.error || 'Error al iniciar con Google');
+    }
   };
-
   return (
     <KeyboardAvoidingView 
       style={styles.container}
@@ -102,35 +104,18 @@ export default function LoginPage() {
               {isLoading ? "Iniciando sesión..." : "Iniciar Sesión"}
             </Text>
           </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.googleButton, isGoogleLoading && styles.buttonDisabled]} 
+            onPress={handleGoogleLogin}
+            disabled={isGoogleLoading}
+          >
+            {isGoogleLoading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text style={styles.googleButtonText}>Iniciar con Google</Text>
+            )}
+          </TouchableOpacity>
 
-          {/* Sección de demo */}
-          <View style={styles.demoSection}>
-            <Text style={styles.demoTitle}>Credenciales de Demo:</Text>
-            
-            <TouchableOpacity 
-              style={styles.demoButton}
-              onPress={() => handleDemoLogin("admin", "1234")}
-              disabled={isLoading}
-            >
-              <Text style={styles.demoButtonText}>Admin (admin / 1234)</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.demoButton}
-              onPress={() => handleDemoLogin("docente", "5678")}
-              disabled={isLoading}
-            >
-              <Text style={styles.demoButtonText}>Docente (docente / 5678)</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.demoButton}
-              onPress={() => handleDemoLogin("estudiante", "9012")}
-              disabled={isLoading}
-            >
-              <Text style={styles.demoButtonText}>Estudiante (estudiante / 9012)</Text>
-            </TouchableOpacity>
-          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -231,5 +216,20 @@ const styles = StyleSheet.create({
     color: "#475569",
     fontSize: 14,
     fontWeight: "500",
+  },
+  googleButton: {
+    backgroundColor: '#DB4437',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  buttonDisabled: {
+    backgroundColor: '#ccc',
+  },
+  googleButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });

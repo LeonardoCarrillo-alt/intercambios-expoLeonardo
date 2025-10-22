@@ -171,9 +171,6 @@ const ProductModal: FC<ProductModalProps> = ({
                 <Text style={styles.modalUserInfo}> Nombre de usuario: 
                     {product.alias || 'Nombre de usuario no disponible.'}
                 </Text>
-                <Text style={styles.modalUserInfo}> Carrera: 
-                    {product.price || 'Carrera no disponible.'}
-                </Text>
               </ScrollView>
               <View style={styles.actionButtons}>
                 <TouchableOpacity
