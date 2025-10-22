@@ -116,6 +116,18 @@ export default function LoginPage() {
             )}
           </TouchableOpacity>
 
+          <View style={styles.registerContainer}>
+          <Text style={styles.registerText}>
+            ¿No tienes una cuenta?{" "}
+          </Text>
+          <TouchableOpacity 
+            onPress={() => router.push('/register')}
+            disabled={isLoading || isGoogleLoading}
+          >
+            <Text style={styles.registerLink}>Regístrate</Text>
+          </TouchableOpacity>
+        </View>
+
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -231,5 +243,22 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  registerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20,
+    paddingVertical: 10,
+  },
+  registerText: {
+    fontSize: 16,
+    color: '#64748b',
+  },
+  registerLink: {
+    fontSize: 16,
+    color: '#3b82f6',
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
 });

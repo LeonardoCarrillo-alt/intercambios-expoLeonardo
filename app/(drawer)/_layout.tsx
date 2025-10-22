@@ -30,6 +30,15 @@ const DrawerLayout = () => {
           drawerLabel: 'About',
         }}
       />
+
+      <Drawer.Screen
+        name="register"
+        options={{
+          title: 'Registro',
+          drawerLabel: 'Registro',
+        }}
+      />
+
     </Drawer>
   );
 };
