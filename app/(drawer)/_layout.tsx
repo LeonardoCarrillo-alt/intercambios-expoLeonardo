@@ -1,6 +1,6 @@
 import { Drawer } from 'expo-router/drawer';
 
-import { useThemeColors } from '../hooks/useThemeColors';
+import { useThemeColors } from '../../src/hooks/useThemeColors';
 
 const DrawerLayout = () => {
   const { colors } = useThemeColors();
