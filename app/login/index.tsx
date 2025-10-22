@@ -101,6 +101,15 @@ export default function LoginPage() {
               {isLoading ? "Iniciando sesión..." : "Iniciar Sesión"}
             </Text>
           </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.registerButton}
+            onPress={() => router.replace('/register')}
+            disabled={isLoading}
+          >
+            <Text style={styles.registerButtonText}>
+              Registrarse
+            </Text>
+          </TouchableOpacity>
           <View style={styles.demoSection}>
             <Text style={styles.demoTitle}>Credenciales de Demo:</Text>
             
@@ -228,5 +237,27 @@ const styles = StyleSheet.create({
     color: "#475569",
     fontSize: 14,
     fontWeight: "500",
+  },
+  registerButton: {
+    backgroundColor: "#3b82f6",
+    padding: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: 8,
+    shadowColor: "#3b82f6",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  registerButtonDisabled: {
+    backgroundColor: "#9ca3af",
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  registerButtonText: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
