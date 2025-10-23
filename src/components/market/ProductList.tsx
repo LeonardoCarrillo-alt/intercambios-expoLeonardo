@@ -211,61 +211,71 @@ const products: Product[] = [
   }
 ];
 
-const createStyles = (colors: ThemeColors) =>
-  StyleSheet.create({
-    container: {
-      flex: 1,
-    },
-  });
+// const createStyles = (colors: ThemeColors) =>
+//   StyleSheet.create({
+//     container: {
+//       flex: 1,
+//     },
+//   });
 
 
 const ProductList: React.FC = () => {
   const { colors } = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { selectedCategory } = useMarketStore();
+  const { selectedCategory, searchQuery } = useMarketStore();
 
-  const filteredProducts = selectedCategory
-    ? products.filter((p) => p.category === selectedCategory)
-    : products;
+  const filteredProducts = useMemo(() => {
+    return products.filter((p) => {
+      const matchesCategory = selectedCategory ? p.category === selectedCategory : true;
+      const matchesText =
+        searchQuery.trim() === '' ||
+        p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()));
+      return matchesCategory && matchesText;
+    });
+  }, [products, selectedCategory, searchQuery]);
 
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
-  
+
   const handleProductPress = (product: Product) => {
     setSelectedProduct(product);
     setModalVisible(true);
   };
-  
+
   const handleCloseModal = () => {
-  setModalVisible(false);
-  setSelectedProduct(null);
+    setModalVisible(false);
+    setSelectedProduct(null);
   };
+
   const handleTradeNow = (product: Product) => {
-  console.log('Intercambiar ahora:', product.id);
-  handleCloseModal();
+    console.log('Intercambiar ahora:', product.id);
+    handleCloseModal();
   };
-return (
+
+  return (
     <View style={styles.container}>
       <FlatList
         data={filteredProducts}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <ProductCard
-            product={item}
-            onPress={() => handleProductPress(item)}
-          />
+          <ProductCard product={item} onPress={() => handleProductPress(item)} />
         )}
       />
-
 
       <ProductModal
         visible={modalVisible}
         product={selectedProduct}
-        onClose={() => setModalVisible(false)}
+        onClose={handleCloseModal}
         TradeNow={handleTradeNow}
       />
     </View>
   );
 };
+
+const createStyles = (colors: ThemeColors) =>
+  ({
+    container: { backgroundColor: colors.background },
+  } as const);
 
 export default ProductList;

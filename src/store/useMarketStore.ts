@@ -1,11 +1,15 @@
 import { create } from 'zustand';
 
-interface MarketStore {
+interface MarketState {
   selectedCategory: string | null;
-  setCategory: (category: string | null) => void;
+  searchQuery: string;
+  setSelectedCategory: (category: string | null) => void;
+  setSearchQuery: (query: string) => void;
 }
 
-export const useMarketStore = create<MarketStore>((set) => ({
+export const useMarketStore = create<MarketState>((set) => ({
   selectedCategory: null,
-  setCategory: (category) => set({ selectedCategory: category }),
+  searchQuery: '',
+  setSelectedCategory: (category) => set({ selectedCategory: category }),
+  setSearchQuery: (query) => set({ searchQuery: query }),
 }));

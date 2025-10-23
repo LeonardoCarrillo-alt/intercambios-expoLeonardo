@@ -36,7 +36,7 @@ const createStyles = (colors: ThemeColors) =>
 
 const CategoryList: React.FC = () => {
   const { colors } = useThemeColors();
-  const { selectedCategory, setCategory } = useMarketStore();
+  const { selectedCategory, setSelectedCategory } = useMarketStore();
   const styles = React.useMemo(() => createStyles(colors), [colors]);
 
   return (
@@ -53,7 +53,7 @@ const CategoryList: React.FC = () => {
         return (
           <Pressable
             onPress={() =>
-              setCategory(item.name === 'Todas' ? null : item.name)
+              setSelectedCategory(item.name === 'Todas' ? null : item.name)
             }
             style={[
               styles.card,
