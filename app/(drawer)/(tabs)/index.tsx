@@ -44,11 +44,13 @@ const createStyles = (colors: ThemeColors) =>
       padding: 16,
     },
     sectionTitle: {
-      fontSize: 20,
-      fontWeight: '700',
-      color: colors.text,
-      marginVertical: 12,
-    },
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.text,
+    marginVertical: 16,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase', // da sensación de encabezado
+  }
   });
 
 export default MarketScreen;
