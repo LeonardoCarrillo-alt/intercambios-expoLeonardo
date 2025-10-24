@@ -23,18 +23,10 @@ const createStyles = (colors: ThemeColors) =>
       marginRight: 10,
       borderWidth: 1,
     },
-    selected: {
-      backgroundColor: colors.primary,
-    },
-    text: {
-      fontWeight: '600',
-    },
-    textSelected: {
-      color: 'white',
-    },
+    text: { fontWeight: '600' },
   });
 
-const CategoryList: React.FC = () => {
+const CategoryList = () => {
   const { colors } = useThemeColors();
   const { selectedCategory, setSelectedCategory } = useMarketStore();
   const styles = React.useMemo(() => createStyles(colors), [colors]);
@@ -50,6 +42,7 @@ const CategoryList: React.FC = () => {
         const isSelected =
           selectedCategory === item.name ||
           (selectedCategory === null && item.name === 'Todas');
+
         return (
           <Pressable
             onPress={() =>
@@ -59,9 +52,7 @@ const CategoryList: React.FC = () => {
               styles.card,
               {
                 borderColor: isSelected ? colors.primary : colors.border,
-                backgroundColor: isSelected
-                  ? colors.primary
-                  : colors.surface,
+                backgroundColor: isSelected ? colors.primary : colors.surface,
               },
             ]}
           >
