@@ -185,7 +185,6 @@ const createStyles = (colors: ThemeColors) =>
       paddingHorizontal: 10,
       paddingVertical: 6,
       borderRadius: 8,
-      backdropFilter: 'blur(10px)',
     },
     categoryText: {
       color: '#fff',

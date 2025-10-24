@@ -21,7 +21,9 @@ const MarketScreen: React.FC = () => {
   const { colors } = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { searchQuery, setSearchQuery, setSelectedCategory } = useMarketStore();
-  const [scrollY] = useState(new Animated.Value(0));
+  const [scrollY] = useState<Animated.Value>(new Animated.Value(0));
+  const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
+  // const [scrollY] = useState(new Animated.Value(0));
 
   const headerOpacity = scrollY.interpolate({
     inputRange: [0, 50],
@@ -59,8 +61,9 @@ const MarketScreen: React.FC = () => {
           <Text style={styles.subtitleText}>Encuentra los mejores productos</Text>
         </Animated.View>
 
-        <FlatList
+        <AnimatedFlatList
           data={[{ key: 'search' }, { key: 'categories' }, { key: 'products' }]}
+          keyExtractor={(item) => item.key}
           renderItem={({ item }) => {
             if (item.key === 'search') {
               return (
