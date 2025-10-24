@@ -11,7 +11,7 @@ import { useAuth } from "../context/AuthContext";
 
 const DrawerLayout = () => {
   const { colors } = useThemeColors();
-  const { setProfile, clearProfile } = useProfileStore();
+  const { setProfile, clearProfile, isAdmin } = useProfileStore(); // ✅ ahora usamos isAdmin
   const [loading, setLoading] = useState(true);
   const { logout } = useAuth();
 
@@ -25,8 +25,12 @@ const DrawerLayout = () => {
           const role = (data?.role ?? "user").toString().toLowerCase();
           setProfile({
             uid: currentUser.uid,
-            displayName: data?.displayName ?? currentUser.displayName ?? currentUser.email ?? null,
-            isAdmin: role === "admin",
+            displayName:
+              data?.displayName ??
+              currentUser.displayName ??
+              currentUser.email ??
+              null,
+            isAdmin: role === "admin", // ✅ guardamos rol
           });
         } catch {
           clearProfile();
@@ -52,7 +56,10 @@ const DrawerLayout = () => {
         drawerInactiveTintColor: colors.muted,
       }}
       drawerContent={(props) => (
-        <DrawerContentScrollView {...props} style={{ backgroundColor: colors.drawerBackground }}>
+        <DrawerContentScrollView
+          {...props}
+          style={{ backgroundColor: colors.drawerBackground }}
+        >
           <DrawerItem
             label="Inicio"
             onPress={() => props.navigation.navigate("(tabs)")}
@@ -64,6 +71,21 @@ const DrawerLayout = () => {
             labelStyle={{ color: colors.text }}
           />
           <DrawerItem
+            label="Chat"
+            onPress={() => props.navigation.navigate("chats")}
+            labelStyle={{ color: colors.text }}
+          />
+
+
+          {isAdmin && (
+            <DrawerItem
+              label="Moderación"
+              onPress={() => props.navigation.navigate("moderation/index")}
+              labelStyle={{ color: colors.text }}
+            />
+          )}
+
+          <DrawerItem
             label="Cerrar sesión"
             onPress={async () => {
               const res = await logout();
@@ -74,11 +96,6 @@ const DrawerLayout = () => {
               }
             }}
             labelStyle={{ color: "red", fontWeight: "bold" }}
-          />
-          <DrawerItem
-            label="Chat"
-            onPress={() => props.navigation.navigate("chats")}
-            labelStyle={{ color: colors.text }}
           />
         </DrawerContentScrollView>
       )}
@@ -103,6 +120,17 @@ const DrawerLayout = () => {
           drawerLabel: "Chat",
         }}
       />
+
+
+      {isAdmin && (
+        <Drawer.Screen
+          name="moderationn"
+          options={{
+            title: "Panel de Moderación",
+            drawerLabel: "Moderación",
+          }}
+        />
+      )}
     </Drawer>
   );
 };
