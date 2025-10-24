@@ -128,7 +128,6 @@ export default function ChatScreen() {
             <Text style={styles.offerAmount}>Bs {item.offerAmount}</Text>
             <Text style={styles.offerMessageText}>{item.text}</Text>
             
-            {/* Mostrar estado de la oferta */}
             {item.offerStatus && (
               <View style={[
                 styles.offerStatus,
@@ -136,13 +135,12 @@ export default function ChatScreen() {
                 item.offerStatus === 'rejected' ? styles.offerRejected : styles.offerPending
               ]}>
                 <Text style={styles.offerStatusText}>
-                  {item.offerStatus === 'accepted' ? '✅ Aceptada' : 
-                   item.offerStatus === 'rejected' ? '❌ Rechazada' : '⏳ Pendiente'}
+                  {item.offerStatus === 'accepted' ? 'Aceptada' : 
+                   item.offerStatus === 'rejected' ? 'Rechazada' : 'Pendiente'}
                 </Text>
               </View>
             )}
             
-            {/* Botones para aceptar/rechazar (solo para el vendedor) */}
             {!isMyMessage && isSeller && item.offerStatus === 'pending' && (
               <View style={styles.offerActions}>
                 <TouchableOpacity 
@@ -176,7 +174,6 @@ export default function ChatScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backButton}>←</Text>
@@ -194,7 +191,6 @@ export default function ChatScreen() {
         <View style={{ width: 30 }} />
       </View>
 
-      {/* Lista de mensajes */}
       <FlatList
         ref={flatListRef}
         data={messages}
@@ -205,7 +201,6 @@ export default function ChatScreen() {
         onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
       />
 
-      {/* Input de mensaje */}
       <View style={styles.inputContainer}>
         <TouchableOpacity 
           style={styles.offerButton}
@@ -234,7 +229,6 @@ export default function ChatScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Modal para enviar oferta */}
       <Modal
         visible={showOfferModal}
         animationType="slide"

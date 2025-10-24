@@ -1,4 +1,4 @@
-// services/chatService.ts - VERSIÓN ACTUALIZADA
+
 import { db } from 'app/config/firebase';
 import { 
   collection, 
@@ -20,9 +20,9 @@ export interface Message {
   senderName: string;
   timestamp: any;
   read: boolean;
-  type: 'text' | 'offer'; // ← NUEVO: tipo de mensaje
-  offerAmount?: number; // ← NUEVO: monto de oferta
-  offerStatus?: 'pending' | 'accepted' | 'rejected'; // ← NUEVO: estado de oferta
+  type: 'text' | 'offer'; 
+  offerAmount?: number; 
+  offerStatus?: 'pending' | 'accepted' | 'rejected'; 
 }
 
 export interface Chat {
@@ -34,24 +34,22 @@ export interface Chat {
     email: string;
     username: string;
   }>;
-  itemId?: string; // ← NUEVO: ID del producto relacionado
-  itemTitle?: string; // ← NUEVO: título del producto
+  itemId?: string; 
+  itemTitle?: string; 
   lastMessage?: string;
   lastMessageTime?: any;
   createdAt: any;
 }
 
-// ACTUALIZADO: Ahora recibe información del producto
 export const getOrCreateChat = async (
   currentUserId: string, 
   otherUserId: string, 
   otherUserName: string, 
   otherUserEmail: string,
   currentUserName: string,
-  itemId?: string, // ← NUEVO: ID del producto
-  itemTitle?: string // ← NUEVO: título del producto
+  itemId?: string, 
+  itemTitle?: string 
 ) => {
-  // Si hay itemId, buscar chat existente para este producto
   if (itemId) {
     const chatsRef = collection(db, 'chats');
     const q = query(
@@ -75,7 +73,6 @@ export const getOrCreateChat = async (
       return existingChat;
     }
   } else {
-    // Búsqueda normal (sin producto)
     const chatsRef = collection(db, 'chats');
     const q = query(
       chatsRef, 
@@ -98,7 +95,6 @@ export const getOrCreateChat = async (
     }
   }
   
-  // Crear nuevo chat CON información del producto
   const newChat = {
     participantIds: [currentUserId, otherUserId],
     participants: [
@@ -115,8 +111,8 @@ export const getOrCreateChat = async (
         username: otherUserName
       }
     ],
-    itemId: itemId || null, // ← NUEVO
-    itemTitle: itemTitle || null, // ← NUEVO
+    itemId: itemId || null,
+    itemTitle: itemTitle || null,
     createdAt: serverTimestamp()
   };
   console.log('Nuevo chat creado:', newChat);
@@ -124,14 +120,13 @@ export const getOrCreateChat = async (
   return { id: docRef.id, ...newChat } as Chat;
 };
 
-// ACTUALIZADO: Soporte para enviar ofertas
 export const sendMessage = async (
   chatId: string, 
   text: string, 
   senderId: string, 
   senderName: string,
-  type: 'text' | 'offer' = 'text', // ← NUEVO
-  offerAmount?: number // ← NUEVO
+  type: 'text' | 'offer' = 'text', 
+  offerAmount?: number 
 ) => {
   const messagesRef = collection(db, 'chats', chatId, 'messages');
   
@@ -141,10 +136,9 @@ export const sendMessage = async (
     senderName,
     timestamp: serverTimestamp(),
     read: false,
-    type // ← NUEVO
+    type 
   };
 
-  // Si es oferta, agregar información adicional
   if (type === 'offer' && offerAmount) {
     messageData.offerAmount = offerAmount;
     messageData.offerStatus = 'pending';
@@ -159,7 +153,6 @@ export const sendMessage = async (
   });
 };
 
-// NUEVO: Actualizar estado de oferta
 export const updateOfferStatus = async (
   chatId: string, 
   messageId: string, 
@@ -171,7 +164,6 @@ export const updateOfferStatus = async (
   });
 };
 
-// El resto de funciones se mantienen igual...
 export const subscribeToMessages = (chatId: string, callback: (messages: Message[]) => void) => {
   const messagesRef = collection(db, 'chats', chatId, 'messages');
   const q = query(messagesRef, orderBy('timestamp', 'asc'));
