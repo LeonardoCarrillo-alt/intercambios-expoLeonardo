@@ -19,8 +19,7 @@ const DrawerLayout = () => {
       <Drawer.Screen
         name="(tabs)"
         options={{
-          title: 'Inicio',
-          drawerLabel: 'Inicio',
+          headerShown:false,
         }}
       />
       <Drawer.Screen
