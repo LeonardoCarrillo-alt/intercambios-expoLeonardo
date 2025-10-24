@@ -1,3 +1,5 @@
+// services/chatService.ts - VERSIÓN ACTUALIZADA
+import { db } from 'app/config/firebase';
 import { 
   collection, 
   doc, 
@@ -10,7 +12,6 @@ import {
   serverTimestamp,
   getDocs 
 } from 'firebase/firestore';
-import { db } from '../../app/config/firebase';
 
 export interface Message {
   id?: string;
@@ -19,6 +20,9 @@ export interface Message {
   senderName: string;
   timestamp: any;
   read: boolean;
+  type: 'text' | 'offer'; // ← NUEVO: tipo de mensaje
+  offerAmount?: number; // ← NUEVO: monto de oferta
+  offerStatus?: 'pending' | 'accepted' | 'rejected'; // ← NUEVO: estado de oferta
 }
 
 export interface Chat {
@@ -28,75 +32,146 @@ export interface Chat {
     userId: string;
     name: string;
     email: string;
+    username: string;
   }>;
+  itemId?: string; // ← NUEVO: ID del producto relacionado
+  itemTitle?: string; // ← NUEVO: título del producto
   lastMessage?: string;
   lastMessageTime?: any;
   createdAt: any;
 }
 
-export const getOrCreateChat = async (currentUserId: string, otherUserId: string, otherUserName: string, otherUserEmail: string) => {
-  const chatsRef = collection(db, 'chats');
-  const q = query(
-    chatsRef, 
-    where('participantIds', 'array-contains', currentUserId)
-  );
-  
-  const querySnapshot = await getDocs(q);
-  
-  let existingChat: Chat | null = null;
-  
-  querySnapshot.forEach((doc) => {
-    const chatData = doc.data();
-    if (chatData.participantIds.includes(otherUserId)) {
-      existingChat = { id: doc.id, ...chatData } as Chat;
+// ACTUALIZADO: Ahora recibe información del producto
+export const getOrCreateChat = async (
+  currentUserId: string, 
+  otherUserId: string, 
+  otherUserName: string, 
+  otherUserEmail: string,
+  currentUserName: string,
+  itemId?: string, // ← NUEVO: ID del producto
+  itemTitle?: string // ← NUEVO: título del producto
+) => {
+  // Si hay itemId, buscar chat existente para este producto
+  if (itemId) {
+    const chatsRef = collection(db, 'chats');
+    const q = query(
+      chatsRef, 
+      where('participantIds', 'array-contains', currentUserId),
+      where('itemId', '==', itemId)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    
+    let existingChat: Chat | null = null;
+    
+    querySnapshot.forEach((doc) => {
+      const chatData = doc.data();
+      if (chatData.participantIds.includes(otherUserId)) {
+        existingChat = { id: doc.id, ...chatData } as Chat;
+      }
+    });
+    
+    if (existingChat) {
+      return existingChat;
     }
-  });
-  
-  if (existingChat) {
-    return existingChat;
+  } else {
+    // Búsqueda normal (sin producto)
+    const chatsRef = collection(db, 'chats');
+    const q = query(
+      chatsRef, 
+      where('participantIds', 'array-contains', currentUserId)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    
+    let existingChat: Chat | null = null;
+    
+    querySnapshot.forEach((doc) => {
+      const chatData = doc.data();
+      if (chatData.participantIds.includes(otherUserId) && !chatData.itemId) {
+        existingChat = { id: doc.id, ...chatData } as Chat;
+      }
+    });
+    
+    if (existingChat) {
+      return existingChat;
+    }
   }
   
+  // Crear nuevo chat CON información del producto
   const newChat = {
     participantIds: [currentUserId, otherUserId],
     participants: [
       {
         userId: currentUserId,
-        name: 'Tú', // Esto se puede mejorar obteniendo el nombre real
-        email: '' // Se puede obtener del auth
+        name: currentUserName,
+        email: '', 
+        username: currentUserName
       },
       {
         userId: otherUserId,
         name: otherUserName,
-        email: otherUserEmail
+        email: otherUserEmail,
+        username: otherUserName
       }
     ],
+    itemId: itemId || null, // ← NUEVO
+    itemTitle: itemTitle || null, // ← NUEVO
     createdAt: serverTimestamp()
   };
-  
+  console.log('Nuevo chat creado:', newChat);
   const docRef = await addDoc(collection(db, 'chats'), newChat);
   return { id: docRef.id, ...newChat } as Chat;
 };
 
-export const sendMessage = async (chatId: string, text: string, senderId: string, senderName: string) => {
+// ACTUALIZADO: Soporte para enviar ofertas
+export const sendMessage = async (
+  chatId: string, 
+  text: string, 
+  senderId: string, 
+  senderName: string,
+  type: 'text' | 'offer' = 'text', // ← NUEVO
+  offerAmount?: number // ← NUEVO
+) => {
   const messagesRef = collection(db, 'chats', chatId, 'messages');
   
-  const messageData = {
+  const messageData: any = {
     text,
     senderId,
     senderName,
     timestamp: serverTimestamp(),
-    read: false
+    read: false,
+    type // ← NUEVO
   };
+
+  // Si es oferta, agregar información adicional
+  if (type === 'offer' && offerAmount) {
+    messageData.offerAmount = offerAmount;
+    messageData.offerStatus = 'pending';
+  }
   
   await addDoc(messagesRef, messageData);
   
   const chatRef = doc(db, 'chats', chatId);
   await updateDoc(chatRef, {
-    lastMessage: text,
+    lastMessage: type === 'offer' ? `Oferta: Bs ${offerAmount}` : text,
     lastMessageTime: serverTimestamp()
   });
 };
 
+// NUEVO: Actualizar estado de oferta
+export const updateOfferStatus = async (
+  chatId: string, 
+  messageId: string, 
+  status: 'accepted' | 'rejected'
+) => {
+  const messageRef = doc(db, 'chats', chatId, 'messages', messageId);
+  await updateDoc(messageRef, {
+    offerStatus: status
+  });
+};
+
+// El resto de funciones se mantienen igual...
 export const subscribeToMessages = (chatId: string, callback: (messages: Message[]) => void) => {
   const messagesRef = collection(db, 'chats', chatId, 'messages');
   const q = query(messagesRef, orderBy('timestamp', 'asc'));
