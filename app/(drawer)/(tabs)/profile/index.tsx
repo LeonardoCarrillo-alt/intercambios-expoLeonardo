@@ -1,5 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, View, Pressable, Image, Alert, ActivityIndicator } from 'react-native';
+import { 
+  StyleSheet, 
+  Text, 
+  View, 
+  Pressable, 
+  Image, 
+  Alert, 
+  ActivityIndicator,
+  ScrollView,
+  Platform
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useAuth } from "../../../context/AuthContext";
@@ -8,6 +18,8 @@ import { getUserByUid, updateUserPhoto } from '../../../../src/services/userServ
 import { uploadToCloudinary } from '../../../../src/services/cloudinary';
 import * as ImagePicker from 'expo-image-picker';
 import { updateProfile } from 'firebase/auth';
+import { useThemeColors } from '../../../../src/hooks/useThemeColors';
+import { ThemeColors } from '../../../../src/theme/colors';
 
 const ProfileScreen = () => {
   const [photoUrl, setPhotoUrl] = useState<string | undefined>();
@@ -15,6 +27,9 @@ const ProfileScreen = () => {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [uploading, setUploading] = useState(false);
   const { logout } = useAuth();
+  const { colors } = useThemeColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   useEffect(() => {
     const currentUser = auth.currentUser;
     if (!currentUser) {
@@ -38,12 +53,28 @@ const ProfileScreen = () => {
   }, []);
 
   const handleLogout = async () => {
-    try {
-      await logout();
-      router.replace('/login');
-    } catch (error) {
-      console.warn('No se pudo cerrar sesión', error);
-    }
+    Alert.alert(
+      'Cerrar Sesión',
+      '¿Estás seguro de que quieres cerrar sesión?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel'
+        },
+        {
+          text: 'Cerrar Sesión',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await logout();
+              router.replace('/login');
+            } catch (error) {
+              console.warn('No se pudo cerrar sesión', error);
+            }
+          }
+        }
+      ]
+    );
   };
 
   const requestMediaPermission = useCallback(async () => {
@@ -119,120 +150,374 @@ const ProfileScreen = () => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <View style={styles.container}>
-        <Text style={styles.title}>Perfil</Text>
-        {email && <Text style={styles.subtitle}>{email}</Text>}
-        <View style={styles.avatarWrapper}>
-          {loadingProfile ? (
-            <ActivityIndicator color="#f9738f" />
-          ) : photoUrl ? (
-            <Image source={{ uri: photoUrl }} style={styles.avatarImage} />
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarInitial}>{initials}</Text>
-            </View>
-          )}
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header con gradiente */}
+        <View style={styles.headerContainer}>
+          <View style={styles.headerContent}>
+            <Text style={styles.headerTitle}>Mi Perfil</Text>
+            <Text style={styles.headerSubtitle}>Gestiona tu información personal</Text>
+          </View>
         </View>
-        <Pressable
-          style={[styles.uploadButton, uploading && styles.uploadButtonDisabled]}
-          onPress={handlePickImage}
-          disabled={uploading}
-        >
-          <Text style={styles.uploadLabel}>
-            {uploading ? 'Subiendo...' : 'Cambiar foto de perfil'}
-          </Text>
-        </Pressable>
-        <View style={styles.divider} />
-        <Pressable style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutLabel}>Cerrar sesión</Text>
-        </Pressable>
-      </View>
+
+        {/* Card de perfil */}
+        <View style={styles.profileCard}>
+          {/* Avatar */}
+          <View style={styles.avatarSection}>
+            <View style={styles.avatarWrapper}>
+              {loadingProfile ? (
+                <ActivityIndicator color={colors.primary || '#1a1a2e'} size="large" />
+              ) : photoUrl ? (
+                <Image source={{ uri: photoUrl }} style={styles.avatarImage} />
+              ) : (
+                <View style={styles.avatarPlaceholder}>
+                  <Text style={styles.avatarInitial}>{initials}</Text>
+                </View>
+              )}
+              {!loadingProfile && (
+                <Pressable 
+                  style={styles.cameraButton}
+                  onPress={handlePickImage}
+                  disabled={uploading}
+                >
+                  <Text style={styles.cameraIcon}>📷</Text>
+                </Pressable>
+              )}
+            </View>
+            
+            <View style={styles.userInfo}>
+              {email && <Text style={styles.userEmail}>{email}</Text>}
+              <Text style={styles.userLabel}>Cuenta Principal</Text>
+            </View>
+          </View>
+
+          {/* Botón de cambiar foto */}
+          <Pressable
+            style={[styles.uploadButton, uploading && styles.uploadButtonDisabled]}
+            onPress={handlePickImage}
+            disabled={uploading}
+          >
+            {uploading ? (
+              <ActivityIndicator color="#ffffff" size="small" />
+            ) : (
+              <>
+                <Text style={styles.uploadIcon}>🖼️</Text>
+                <Text style={styles.uploadLabel}>Cambiar Foto de Perfil</Text>
+              </>
+            )}
+          </Pressable>
+        </View>
+
+        {/* Opciones */}
+        <View style={styles.optionsContainer}>
+          <Text style={styles.sectionTitle}>Configuración</Text>
+          
+          <Pressable style={styles.optionItem}>
+            <View style={styles.optionLeft}>
+              <View style={[styles.optionIconContainer, { backgroundColor: '#e3f2fd' }]}>
+                <Text style={styles.optionIcon}>👤</Text>
+              </View>
+              <Text style={styles.optionText}>Editar Perfil</Text>
+            </View>
+            <Text style={styles.optionArrow}>›</Text>
+          </Pressable>
+
+          <Pressable style={styles.optionItem}>
+            <View style={styles.optionLeft}>
+              <View style={[styles.optionIconContainer, { backgroundColor: '#f3e5f5' }]}>
+                <Text style={styles.optionIcon}>🔔</Text>
+              </View>
+              <Text style={styles.optionText}>Notificaciones</Text>
+            </View>
+            <Text style={styles.optionArrow}>›</Text>
+          </Pressable>
+
+          <Pressable style={styles.optionItem}>
+            <View style={styles.optionLeft}>
+              <View style={[styles.optionIconContainer, { backgroundColor: '#fff3e0' }]}>
+                <Text style={styles.optionIcon}>🔒</Text>
+              </View>
+              <Text style={styles.optionText}>Privacidad y Seguridad</Text>
+            </View>
+            <Text style={styles.optionArrow}>›</Text>
+          </Pressable>
+
+          <Pressable style={styles.optionItem}>
+            <View style={styles.optionLeft}>
+              <View style={[styles.optionIconContainer, { backgroundColor: '#e8f5e9' }]}>
+                <Text style={styles.optionIcon}>❓</Text>
+              </View>
+              <Text style={styles.optionText}>Ayuda y Soporte</Text>
+            </View>
+            <Text style={styles.optionArrow}>›</Text>
+          </Pressable>
+        </View>
+
+        {/* Botón de cerrar sesión */}
+        <View style={styles.logoutContainer}>
+          <Pressable 
+            style={styles.logoutButton} 
+            onPress={handleLogout}
+          >
+            <Text style={styles.logoutIcon}>🚪</Text>
+            <Text style={styles.logoutLabel}>Cerrar Sesión</Text>
+          </Pressable>
+        </View>
+
+        <Text style={styles.versionText}>Versión 1.0.0</Text>
+      </ScrollView>
     </SafeAreaView>
   );
 };
 
 export default ProfileScreen;
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-  },
-  container: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingVertical: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#6b7280',
-  },
-  avatarWrapper: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    borderWidth: 2,
-    borderColor: '#fda4af',
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-    backgroundColor: '#fff8f9',
-  },
-  avatarImage: {
-    width: '100%',
-    height: '100%',
-  },
-  avatarPlaceholder: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarInitial: {
-    fontSize: 48,
-    fontWeight: '700',
-    color: '#f9738f',
-  },
-  uploadButton: {
-    marginTop: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 32,
-    borderRadius: 999,
-    backgroundColor: '#f9738f',
-  },
-  uploadButtonDisabled: {
-    opacity: 0.7,
-  },
-  uploadLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#ffffff',
-  },
-  divider: {
-    width: '70%',
-    height: 1,
-    backgroundColor: '#f1f5f9',
-    marginVertical: 12,
-  },
-  logoutButton: {
-    marginTop: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 32,
-    borderRadius: 999,
-    backgroundColor: '#f9738f',
-  },
-  logoutLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#ffffff',
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.background || '#f8f9fa',
+    },
+    scrollContent: {
+      paddingBottom: 40,
+    },
+    headerContainer: {
+      backgroundColor: colors.primary || '#1a1a2e',
+      paddingHorizontal: 20,
+      paddingTop: 20,
+      paddingBottom: 80,
+      borderBottomLeftRadius: 30,
+      borderBottomRightRadius: 30,
+      ...Platform.select({
+        ios: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.15,
+          shadowRadius: 12,
+        },
+        android: {
+          elevation: 8,
+        },
+      }),
+    },
+    headerContent: {
+      alignItems: 'center',
+    },
+    headerTitle: {
+      fontSize: 32,
+      fontWeight: '800',
+      color: '#ffffff',
+      marginBottom: 6,
+      letterSpacing: 0.5,
+    },
+    headerSubtitle: {
+      fontSize: 14,
+      color: '#e0e0e0',
+      fontWeight: '400',
+    },
+    profileCard: {
+      backgroundColor: colors.surface || '#ffffff',
+      marginHorizontal: 20,
+      marginTop: -60,
+      borderRadius: 20,
+      padding: 24,
+      ...Platform.select({
+        ios: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 12,
+        },
+        android: {
+          elevation: 4,
+        },
+      }),
+    },
+    avatarSection: {
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    avatarWrapper: {
+      width: 120,
+      height: 120,
+      borderRadius: 60,
+      borderWidth: 4,
+      borderColor: colors.primary || '#1a1a2e',
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+      backgroundColor: colors.background || '#f8f9fa',
+      position: 'relative',
+    },
+    avatarImage: {
+      width: '100%',
+      height: '100%',
+    },
+    avatarPlaceholder: {
+      flex: 1,
+      width: '100%',
+      height: '100%',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.primary || '#1a1a2e',
+    },
+    avatarInitial: {
+      fontSize: 48,
+      fontWeight: '700',
+      color: '#ffffff',
+    },
+    cameraButton: {
+      position: 'absolute',
+      bottom: 0,
+      right: 0,
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: colors.primary || '#1a1a2e',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 3,
+      borderColor: colors.surface || '#ffffff',
+    },
+    cameraIcon: {
+      fontSize: 18,
+    },
+    userInfo: {
+      alignItems: 'center',
+      marginTop: 16,
+    },
+    userEmail: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: colors.text || '#000',
+      marginBottom: 4,
+    },
+    userLabel: {
+      fontSize: 13,
+      color: colors.textSecondary || '#6c757d',
+      fontWeight: '500',
+    },
+    uploadButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 14,
+      paddingHorizontal: 24,
+      borderRadius: 12,
+      backgroundColor: colors.primary || '#1a1a2e',
+      gap: 8,
+    },
+    uploadButtonDisabled: {
+      opacity: 0.6,
+    },
+    uploadIcon: {
+      fontSize: 18,
+    },
+    uploadLabel: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: '#ffffff',
+      letterSpacing: 0.3,
+    },
+    optionsContainer: {
+      marginTop: 24,
+      paddingHorizontal: 20,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: colors.text || '#000',
+      marginBottom: 12,
+      marginLeft: 4,
+      letterSpacing: 0.3,
+    },
+    optionItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: colors.surface || '#ffffff',
+      paddingVertical: 16,
+      paddingHorizontal: 16,
+      borderRadius: 12,
+      marginBottom: 10,
+      ...Platform.select({
+        ios: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.05,
+          shadowRadius: 4,
+        },
+        android: {
+          elevation: 2,
+        },
+      }),
+    },
+    optionLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 14,
+    },
+    optionIconContainer: {
+      width: 42,
+      height: 42,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    optionIcon: {
+      fontSize: 20,
+    },
+    optionText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.text || '#000',
+    },
+    optionArrow: {
+      fontSize: 28,
+      color: colors.textSecondary || '#6c757d',
+      fontWeight: '300',
+    },
+    logoutContainer: {
+      paddingHorizontal: 20,
+      marginTop: 20,
+    },
+    logoutButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 16,
+      paddingHorizontal: 24,
+      borderRadius: 12,
+      backgroundColor: '#dc3545',
+      gap: 10,
+      ...Platform.select({
+        ios: {
+          shadowColor: '#dc3545',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.2,
+          shadowRadius: 8,
+        },
+        android: {
+          elevation: 3,
+        },
+      }),
+    },
+    logoutIcon: {
+      fontSize: 20,
+    },
+    logoutLabel: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: '#ffffff',
+      letterSpacing: 0.3,
+    },
+    versionText: {
+      textAlign: 'center',
+      fontSize: 12,
+      color: colors.textSecondary || '#6c757d',
+      marginTop: 24,
+      fontWeight: '500',
+    },
+  });
