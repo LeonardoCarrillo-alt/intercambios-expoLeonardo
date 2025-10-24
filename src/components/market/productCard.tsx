@@ -19,6 +19,7 @@ export interface Product {
   condition: 'Disponible' | 'No Disponible';
   category?: string;
   alias: string;
+  status?: 'pending' | 'approved' | 'rejected' | 'sold';
 }
 
 interface ProductCardProps {
@@ -35,35 +36,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress }) =>
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.container,
-        pressed && styles.pressed,
-      ]}
-      android_ripple={{ color: colors.primary + '20' }}
+      style={({ pressed }) => [styles.container, pressed && styles.pressed]}
+      android_ripple={{ color: `${(colors as any).primary}20` }}
     >
-      {/* Contenedor de imagen con overlay de estado */}
       <View style={styles.imageContainer}>
-        <Image
-          source={{ uri: product.image }}
-          style={styles.image}
-          resizeMode="cover"
-        />
-        
-        {/* Badge de estado */}
-        <View style={[
-          styles.statusBadge,
-          isAvailable ? styles.availableBadge : styles.unavailableBadge
-        ]}>
-          <View style={[
-            styles.statusDot,
-            isAvailable ? styles.availableDot : styles.unavailableDot
-          ]} />
-          <Text style={styles.statusText}>
-            {isAvailable ? 'Disponible' : 'No disponible'}
-          </Text>
+        <Image source={{ uri: product.image }} style={styles.image} resizeMode="cover" />
+        <View style={[styles.statusBadge, isAvailable ? styles.availableBadge : styles.unavailableBadge]}>
+          <View style={[styles.statusDot, isAvailable ? styles.availableDot : styles.unavailableDot]} />
+          <Text style={styles.statusText}>{isAvailable ? 'Disponible' : 'No disponible'}</Text>
         </View>
-
-        {/* Badge de categoría */}
         {product.category && (
           <View style={styles.categoryBadge}>
             <Text style={styles.categoryText}>{product.category}</Text>
@@ -71,14 +52,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress }) =>
         )}
       </View>
 
-      {/* Contenido principal */}
       <View style={styles.body}>
-        {/* Título */}
         <Text numberOfLines={2} style={styles.title}>
           {product.title}
         </Text>
 
-        {/* Precio y vendedor */}
         <View style={styles.footer}>
           <View style={styles.priceContainer}>
             {product.price != null ? (
@@ -91,11 +69,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress }) =>
             )}
           </View>
 
-          {/* Vendedor */}
           <View style={styles.sellerContainer}>
             <View style={styles.sellerAvatar}>
               <Text style={styles.sellerInitial}>
-                {product.alias[0]?.toUpperCase() || 'U'}
+                {product.alias && product.alias[0] ? product.alias[0].toUpperCase() : 'U'}
               </Text>
             </View>
             <Text numberOfLines={1} style={styles.sellerName}>
@@ -103,23 +80,31 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress }) =>
             </Text>
           </View>
         </View>
+
+        {product.status && (
+          <View style={{ marginTop: 8 }}>
+            <Text style={{ fontSize: 12, color: '#6b7280', fontWeight: '700' }}>Estado: {product.status}</Text>
+          </View>
+        )}
       </View>
     </Pressable>
   );
 };
 
-const createStyles = (colors: ThemeColors) =>
+const createStyles = (colors: ThemeColors | any) =>
   StyleSheet.create({
     container: {
-      backgroundColor: colors.surface || colors.background,
+      backgroundColor: (colors as any).surface || (colors as any).background,
       borderRadius: 16,
       marginBottom: 16,
       overflow: 'hidden',
       borderWidth: 1,
-      borderColor: colors.border || (colors.background === '#FFFFFF' ? '#e5e7eb' : 'rgba(255,255,255,0.1)'),
+      borderColor:
+        (colors as any).border ||
+        ((String((colors as any).background) === '#f8fafc' ? '#e5e7eb' : 'rgba(255,255,255,0.1)')),
       ...Platform.select({
         ios: {
-          shadowColor: colors.shadow || '#000',
+          shadowColor: ((colors as any).shadow as string) ?? '#000',
           shadowOffset: { width: 0, height: 4 },
           shadowOpacity: 0.1,
           shadowRadius: 8,
@@ -201,7 +186,7 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 18,
       fontWeight: '700',
       lineHeight: 24,
-      color: colors.text,
+      color: (colors as any).text,
       marginBottom: 4,
     },
     footer: {
@@ -216,7 +201,7 @@ const createStyles = (colors: ThemeColors) =>
     priceLabel: {
       fontSize: 11,
       fontWeight: '600',
-      color: colors.subtitle || colors.text + '80',
+      color: (colors as any).subtitle || `${(colors as any).text}80`,
       textTransform: 'uppercase',
       letterSpacing: 0.5,
       marginBottom: 2,
@@ -224,20 +209,23 @@ const createStyles = (colors: ThemeColors) =>
     price: {
       fontSize: 22,
       fontWeight: '800',
-      color: colors.primary || '#10b981',
+      color: (colors as any).primary || '#10b981',
       letterSpacing: -0.5,
     },
     exchangeText: {
       fontSize: 16,
       fontWeight: '700',
-      color: colors.primary || '#10b981',
+      color: (colors as any).primary || '#10b981',
       paddingVertical: 4,
     },
     sellerContainer: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
-      backgroundColor: colors.background === '#FFFFFF' ? '#f9fafb' : 'rgba(255,255,255,0.05)',
+      backgroundColor:
+        String((colors as any).background) === '#f8fafc' || String((colors as any).surface) === '#ffffff'
+          ? '#f9fafb'
+          : 'rgba(255,255,255,0.05)',
       paddingVertical: 6,
       paddingHorizontal: 10,
       borderRadius: 20,
@@ -247,7 +235,7 @@ const createStyles = (colors: ThemeColors) =>
       width: 28,
       height: 28,
       borderRadius: 14,
-      backgroundColor: colors.primary || '#10b981',
+      backgroundColor: (colors as any).primary || '#10b981',
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -259,7 +247,9 @@ const createStyles = (colors: ThemeColors) =>
     sellerName: {
       fontSize: 13,
       fontWeight: '600',
-      color: colors.text,
+      color: (colors as any).text,
       flex: 1,
     },
   });
+
+export default ProductCard;
