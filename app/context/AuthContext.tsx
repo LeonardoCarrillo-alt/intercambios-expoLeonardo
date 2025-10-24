@@ -6,14 +6,16 @@ import {
   onAuthStateChanged,
   User,
   GoogleAuthProvider,
-  signInWithCredential
+  signInWithCredential,
+  updateProfile
 } from 'firebase/auth';
-import { auth } from '../config/firebase';
+import { auth, db } from '../config/firebase'; 
 import { useGoogleAuth } from '../config/googleAuth';
+import { doc, setDoc } from 'firebase/firestore'; 
 
 interface AuthContextType {
   user: User | null;
-  signUp: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signUp: (email: string, password: string, username: string) => Promise<{ success: boolean; error?: string }>; // ← Agregar username
   signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signInWithGoogle: () => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<{ success: boolean; error?: string }>;
@@ -35,9 +37,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState<boolean>(true);
   const { request, response, promptAsync } = useGoogleAuth();
 
-  const signUp = async (email: string, password: string) => {
+  // REGISTRO ACTUALIZADO con username
+  const signUp = async (email: string, password: string, username: string) => {
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      // 1. Crear usuario en Authentication
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // 2. Actualizar el perfil con el username
+      await updateProfile(user, {
+        displayName: username
+      });
+
+      // 3. Guardar información adicional en Firestore
+      await setDoc(doc(db, 'users', user.uid), {
+        uid: user.uid,
+        email: email,
+        username: username,
+        displayName: username,
+        createdAt: new Date(),
+      });
+
       return { success: true };
     } catch (error: any) {
       return { success: false, error: error.message };
@@ -90,7 +110,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
