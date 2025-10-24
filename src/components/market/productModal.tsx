@@ -1,4 +1,4 @@
-import React, { FC, useMemo, useState } from 'react';
+import React, { FC, useMemo, useState, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -11,19 +11,26 @@ import {
   Dimensions,
   Platform,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { ThemeColors } from '../../theme/colors';
+import { getUserDoc } from '../../services/userService';
+import { getDownloadURL, ref as storageRef } from 'firebase/storage';
+import { storage, db } from '../../../app/config/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 export interface Product {
   id: string;
   title: string;
   price?: number;
-  image: string;
+  image?: string;
+  images?: any;
   description?: string;
   condition: 'Disponible' | 'No Disponible';
   category?: string;
-  alias: string;
+  alias?: string | null;
+  ownerId?: string | null;
 }
 
 interface ProductModalProps {
@@ -38,17 +45,117 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const ProductModal: FC<ProductModalProps> = ({ visible, product, onClose, TradeNow }) => {
   const { colors } = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
-
   const [isFavorite, setIsFavorite] = useState(false);
+  const [ownerName, setOwnerName] = useState<string | null>(product?.alias ?? null);
+  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [loadingImage, setLoadingImage] = useState(false);
+
+  useEffect(() => {
+    if (!product) return;
+    let mounted = true;
+    (async () => {
+      if (product.ownerId) {
+        try {
+          const user = await getUserDoc(product.ownerId);
+          if (!mounted) return;
+          const name = (user && (user.username || user.displayName)) ?? product.alias ?? 'Usuario';
+          setOwnerName(name);
+        } catch {
+          if (mounted) setOwnerName(product.alias ?? 'Usuario');
+        }
+      } else {
+        setOwnerName(product.alias ?? 'Usuario');
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [product?.ownerId, product?.alias]);
+
+  const extractCandidateFromImages = (imagesField: any): string | null => {
+    if (!imagesField) return null;
+    if (typeof imagesField === 'string') return imagesField;
+    if (Array.isArray(imagesField)) {
+      if (imagesField.length === 0) return null;
+      const first = imagesField[0];
+      if (typeof first === 'string') return first;
+      if (first && typeof first === 'object') {
+        return first.thumbnail ?? first.original ?? null;
+      }
+      return null;
+    }
+    if (typeof imagesField === 'object') {
+      return imagesField.thumbnail ?? imagesField.original ?? null;
+    }
+    return null;
+  };
+
+  useEffect(() => {
+    if (!product) {
+      setImageUri(null);
+      return;
+    }
+    let mounted = true;
+    (async () => {
+      setLoadingImage(true);
+      try {
+        let imgCandidate: string | null = null;
+        if (product.image) imgCandidate = product.image;
+        if (!imgCandidate) {
+          const fromImages = extractCandidateFromImages(product.images);
+          if (fromImages) imgCandidate = fromImages;
+        }
+        if (!imgCandidate && product.id) {
+          try {
+            const docRef = doc(db, 'products', product.id);
+            const snap = await getDoc(docRef);
+            if (snap.exists()) {
+              const data: any = snap.data();
+              if (data.image) imgCandidate = data.image;
+              if (!imgCandidate) {
+                const fromImages = extractCandidateFromImages(data.images);
+                if (fromImages) imgCandidate = fromImages;
+              }
+            }
+          } catch (err) {
+            console.warn('Error leyendo producto desde Firestore en modal:', err);
+          }
+        }
+        if (!imgCandidate) {
+          if (mounted) setImageUri(null);
+          return;
+        }
+        if (imgCandidate.startsWith('http://') || imgCandidate.startsWith('https://')) {
+          if (mounted) setImageUri(imgCandidate);
+        } else {
+          try {
+            const url = await getDownloadURL(storageRef(storage, imgCandidate));
+            if (mounted) setImageUri(url);
+          } catch (err) {
+            console.warn('getDownloadURL fallo en modal, fallback al valor original:', err);
+            if (mounted) setImageUri(imgCandidate);
+          }
+        }
+      } catch (err) {
+        console.warn('Error resolviendo imagen en modal:', err);
+        if (mounted) setImageUri(product.image ?? null);
+      } finally {
+        if (mounted) setLoadingImage(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [product?.id, product?.image, product?.images]);
 
   if (!product) return null;
 
   const isAvailable = product.condition === 'Disponible';
 
   const handleContact = () => {
-    Alert.alert('Contactar vendedor', `¿Deseas contactar a @${product.alias}?`, [
+    Alert.alert('Contactar vendedor', `¿Deseas contactar a @${ownerName ?? product.alias ?? 'usuario'}?`, [
       { text: 'Cancelar', style: 'cancel' },
-      { text: 'Contactar', onPress: () => console.log('Contactar a:', product.alias) },
+      { text: 'Contactar', onPress: () => console.log('Contactar a:', ownerName ?? product.alias) },
     ]);
   };
 
@@ -88,7 +195,15 @@ const ProductModal: FC<ProductModalProps> = ({ visible, product, onClose, TradeN
 
           <ScrollView showsVerticalScrollIndicator={false} bounces contentContainerStyle={styles.scrollContent}>
             <View style={styles.imageWrapper}>
-              <Image source={{ uri: product.image }} style={styles.image} resizeMode="cover" />
+              {loadingImage ? (
+                <View style={styles.image}>
+                  <ActivityIndicator />
+                </View>
+              ) : imageUri ? (
+                <Image source={{ uri: imageUri }} style={styles.image} resizeMode="cover" />
+              ) : (
+                <View style={[styles.image, { backgroundColor: '#f3f4f6' }]} />
+              )}
 
               <View style={[styles.statusBadge, isAvailable ? styles.availableBadge : styles.unavailableBadge]}>
                 <View style={[styles.statusDot, isAvailable ? styles.availableDot : styles.unavailableDot]} />
@@ -134,10 +249,10 @@ const ProductModal: FC<ProductModalProps> = ({ visible, product, onClose, TradeN
               <View style={styles.sellerCard}>
                 <View style={styles.sellerInfo}>
                   <View style={styles.sellerAvatar}>
-                    <Text style={styles.sellerInitial}>{(product.alias || 'U')[0].toUpperCase()}</Text>
+                    <Text style={styles.sellerInitial}>{(ownerName || product.alias || 'U')[0].toUpperCase()}</Text>
                   </View>
                   <View style={styles.sellerDetails}>
-                    <Text style={styles.sellerName}>@{product.alias || 'Usuario no disponible'}</Text>
+                    <Text style={styles.sellerName}>@{ownerName || product.alias || 'Usuario no disponible'}</Text>
                     <Text style={styles.sellerMeta}>Miembro verificado</Text>
                   </View>
                 </View>
@@ -299,233 +414,51 @@ const createStyles = (colors: ThemeColors | any) => {
     unavailableBadge: {
       backgroundColor: 'rgba(239, 68, 68, 0.95)',
     },
-    statusDot: {
-      width: 6,
-      height: 6,
-      borderRadius: 3,
-    },
-    availableDot: {
-      backgroundColor: '#fff',
-    },
-    unavailableDot: {
-      backgroundColor: '#fff',
-    },
-    statusBadgeText: {
-      color: '#fff',
-      fontSize: 13,
-      fontWeight: '700',
-      letterSpacing: 0.2,
-    },
+    statusDot: { width: 6, height: 6, borderRadius: 3 },
+    availableDot: { backgroundColor: '#fff' },
+    unavailableDot: { backgroundColor: '#fff' },
+    statusBadgeText: { color: '#fff', fontSize: 12, fontWeight: '700', letterSpacing: 0.2 },
     categoryBadgeModal: {
       position: 'absolute',
       top: 16,
       right: 16,
-      backgroundColor: 'rgba(0, 0, 0, 0.75)',
+      backgroundColor: 'rgba(0,0,0,0.7)',
       paddingHorizontal: 12,
       paddingVertical: 8,
-      borderRadius: 10,
+      borderRadius: 8,
     },
-    categoryBadgeText: {
-      color: '#fff',
-      fontSize: 12,
-      fontWeight: '600',
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
-    },
-    mainInfo: {
-      paddingHorizontal: 20,
-      paddingTop: 24,
-      paddingBottom: 8,
-    },
-    title: {
-      fontSize: 26,
-      fontWeight: '800',
-      color: (colors as any).text,
-      marginBottom: 16,
-      lineHeight: 34,
-    },
-    priceSection: {
-      backgroundColor: isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.15)',
-      padding: 16,
-      borderRadius: 12,
-      borderLeftWidth: 4,
-      borderLeftColor: '#10b981',
-    },
-    priceLabel: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: `${(colors as any).text}AA`,
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
-      marginBottom: 4,
-    },
-    price: {
-      fontSize: 32,
-      fontWeight: '900',
-      color: '#10b981',
-      letterSpacing: -1,
-    },
-    exchangeSection: {
-      backgroundColor: isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.15)',
-      padding: 16,
-      borderRadius: 12,
-      borderLeftWidth: 4,
-      borderLeftColor: '#3b82f6',
-    },
-    exchangeLabel: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: `${(colors as any).text}AA`,
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
-      marginBottom: 4,
-    },
-    exchangeText: {
-      fontSize: 20,
-      fontWeight: '800',
-      color: '#3b82f6',
-    },
-    divider: {
-      height: 1,
-      backgroundColor: isLight ? '#e5e7eb' : 'rgba(255,255,255,0.1)',
-      marginVertical: 20,
-      marginHorizontal: 20,
-    },
-    section: {
-      paddingHorizontal: 20,
-      marginBottom: 8,
-    },
-    sectionLabel: {
-      fontWeight: '700',
-      fontSize: 18,
-      marginBottom: 12,
-      color: (colors as any).text,
-      letterSpacing: 0.2,
-    },
-    text: {
-      fontSize: 16,
-      lineHeight: 26,
-      color: `${(colors as any).text}DD`,
-    },
-    sellerCard: {
-      backgroundColor: isLight ? '#f9fafb' : 'rgba(255,255,255,0.05)',
-      padding: 16,
-      borderRadius: 12,
-      gap: 12,
-    },
-    sellerInfo: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    sellerAvatar: {
-      width: 50,
-      height: 50,
-      borderRadius: 25,
-      backgroundColor: '#10b981',
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginRight: 12,
-    },
-    sellerInitial: {
-      color: 'white',
-      fontSize: 22,
-      fontWeight: '700',
-    },
-    sellerDetails: {
-      flex: 1,
-    },
-    sellerName: {
-      fontSize: 17,
-      fontWeight: '700',
-      color: (colors as any).text,
-      marginBottom: 2,
-    },
-    sellerMeta: {
-      fontSize: 13,
-      color: `${(colors as any).text}80`,
-      fontWeight: '500',
-    },
-    contactButton: {
-      backgroundColor: '#10b981',
-      borderRadius: 10,
-      padding: 14,
-      alignItems: 'center',
-    },
-    contactButtonText: {
-      color: 'white',
-      fontWeight: '700',
-      fontSize: 15,
-    },
-    actionsGrid: {
-      flexDirection: 'row',
-      gap: 12,
-      flexWrap: 'wrap',
-    },
-    actionCard: {
-      flex: 1,
-      minWidth: 100,
-      backgroundColor: isLight ? '#f9fafb' : 'rgba(255,255,255,0.05)',
-      padding: 16,
-      borderRadius: 12,
-      alignItems: 'center',
-      gap: 8,
-      borderWidth: 1,
-      borderColor: isLight ? '#e5e7eb' : 'rgba(255,255,255,0.1)',
-    },
-    reportCard: {
-      borderColor: '#fecaca',
-    },
-    actionIcon: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
-      backgroundColor: isLight ? '#fff' : 'rgba(255,255,255,0.1)',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    actionEmoji: {
-      fontSize: 24,
-    },
-    actionText: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: (colors as any).text,
-      textAlign: 'center',
-    },
-    reportText: {
-      color: '#ef4444',
-    },
-    footer: {
-      paddingHorizontal: 20,
-      paddingTop: 16,
-      paddingBottom: Platform.OS === 'ios' ? 28 : 20,
-      backgroundColor: (colors as any).background,
-      borderTopWidth: 1,
-      borderTopColor: isLight ? '#f3f4f6' : 'rgba(255,255,255,0.1)',
-    },
-    tradeButton: {
-      backgroundColor: '#10b981',
-      borderRadius: 12,
-      padding: 18,
-      alignItems: 'center',
-      ...Platform.select({
-        ios: {
-          shadowColor: '#10b981',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.3,
-          shadowRadius: 8,
-        },
-        android: {
-          elevation: 4,
-        },
-      }),
-    },
-    tradeButtonText: {
-      color: 'white',
-      fontWeight: '700',
-      fontSize: 17,
-      letterSpacing: 0.3,
-    },
+    categoryBadgeText: { color: '#fff', fontSize: 11, fontWeight: '600', textTransform: 'uppercase' },
+    mainInfo: { padding: 16 },
+    title: { fontSize: 22, fontWeight: '800', color: (colors as any).text },
+    priceSection: { marginTop: 8 },
+    priceLabel: { fontSize: 12, fontWeight: '700', color: (colors as any).subtitle || `${(colors as any).text}80` },
+    price: { fontSize: 24, fontWeight: '800', color: (colors as any).primary || '#10b981', marginTop: 4 },
+    exchangeSection: { marginTop: 8 },
+    exchangeLabel: { fontSize: 12, fontWeight: '700', color: (colors as any).subtitle || `${(colors as any).text}80` },
+    exchangeText: { fontSize: 16, fontWeight: '700', color: (colors as any).primary || '#10b981', marginTop: 4 },
+    divider: { height: 1, backgroundColor: isLight ? '#f3f4f6' : 'rgba(255,255,255,0.06)', marginHorizontal: 16, marginVertical: 12 },
+    section: { paddingHorizontal: 16, paddingVertical: 8 },
+    sectionLabel: { fontSize: 14, fontWeight: '800', marginBottom: 8 },
+    text: { fontSize: 14, color: (colors as any).text },
+    sellerCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    sellerInfo: { flexDirection: 'row', alignItems: 'center' },
+    sellerAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: (colors as any).primary || '#10b981', alignItems: 'center', justifyContent: 'center' },
+    sellerInitial: { color: '#fff', fontSize: 18, fontWeight: '800' },
+    sellerDetails: { marginLeft: 12 },
+    sellerName: { fontSize: 16, fontWeight: '700' },
+    sellerMeta: { fontSize: 12, color: (colors as any).subtitle || `${(colors as any).text}80` },
+    contactButton: { backgroundColor: (colors as any).primary || '#10b981', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
+    contactButtonText: { color: '#fff', fontWeight: '700' },
+    actionsGrid: { flexDirection: 'row', gap: 12, marginTop: 8, flexWrap: 'wrap' },
+    actionCard: { minWidth: 110, padding: 12, borderRadius: 10, backgroundColor: isLight ? '#f3f4f6' : 'rgba(255,255,255,0.03)', alignItems: 'center' },
+    actionIcon: { marginBottom: 8 },
+    actionEmoji: { fontSize: 20 },
+    actionText: { fontSize: 13, fontWeight: '700' },
+    reportCard: { borderColor: 'rgba(239,68,68,0.15)', borderWidth: 1 },
+    reportText: { color: 'rgba(239,68,68,1)' },
+    footer: { padding: 16, borderTopWidth: 1, borderTopColor: isLight ? '#f3f4f6' : 'rgba(255,255,255,0.06)', backgroundColor: (colors as any).background },
+    tradeButton: { backgroundColor: (colors as any).primary || '#10b981', padding: 14, borderRadius: 12, alignItems: 'center' },
+    tradeButtonText: { color: '#fff', fontWeight: '800' },
   });
 };
 
