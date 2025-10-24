@@ -75,6 +75,11 @@ const DrawerLayout = () => {
             }}
             labelStyle={{ color: "red", fontWeight: "bold" }}
           />
+          <DrawerItem
+            label="Chat"
+            onPress={() => props.navigation.navigate("chats")}
+            labelStyle={{ color: colors.text }}
+          />
         </DrawerContentScrollView>
       )}
     >
@@ -89,6 +94,13 @@ const DrawerLayout = () => {
         options={{
           title: "Sobre la app",
           drawerLabel: "About",
+        }}
+      />
+      <Drawer.Screen
+        name="chats"
+        options={{
+          title: "Chat",
+          drawerLabel: "Chat",
         }}
       />
     </Drawer>

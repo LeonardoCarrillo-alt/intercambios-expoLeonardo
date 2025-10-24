@@ -11,15 +11,22 @@ import {
   Dimensions,
   Platform,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { ThemeColors } from '../../theme/colors';
+import { router } from 'expo-router';
+import { useAuth } from 'app/context/AuthContext';
+import { getProductSeller } from '@src/services/productService';
+import { useChat } from 'app/context/ChatContext';
+import { getUserProfile } from '@src/services/userService';
 
 export interface Product {
   id: string;
   title: string;
   price?: number;
   image: string;
+  ownerId: string;
   description?: string;
   condition: 'Disponible' | 'No Disponible';
   category?: string;
@@ -40,17 +47,94 @@ const ProductModal: FC<ProductModalProps> = ({ visible, product, onClose, TradeN
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [isFavorite, setIsFavorite] = useState(false);
+  const { user } = useAuth();
+  const { startChat } = useChat();
+  const [isContacting, setIsContacting] = useState(false);
 
   if (!product) return null;
 
   const isAvailable = product.condition === 'Disponible';
 
-  const handleContact = () => {
-    Alert.alert('Contactar vendedor', `¿Deseas contactar a @${product.alias}?`, [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Contactar', onPress: () => console.log('Contactar a:', product.alias) },
-    ]);
+
+  const handleContact = async () => {
+    if (!user) {
+      Alert.alert('Iniciar sesión', 'Debes iniciar sesión para contactar al vendedor', [
+        { text: 'Cancelar', style: 'cancel' },
+        { 
+          text: 'Iniciar sesión', 
+          onPress: () => {
+            onClose();
+            router.push('/login');
+          }
+        },
+      ]);
+      return;
+    }
+
+    // No permitir contactarse consigo mismo
+    if (product.ownerId === user.uid) {
+      Alert.alert('Acción no permitida', 'No puedes contactarte contigo mismo');
+      return;
+    }
+
+    setIsContacting(true);
+
+    try {
+      let sellerUser;
+
+      // Intentar obtener el vendedor por ownerId si está disponible
+      if (product.ownerId) {
+        sellerUser = await getUserProfile(product.ownerId);
+      }
+
+      if (!sellerUser) {
+        Alert.alert('Error', 'No se pudo encontrar la información del vendedor');
+        return;
+      }
+
+      Alert.alert(
+        'Contactar vendedor', 
+        `¿Deseas contactar a @${sellerUser.username} sobre "${product.title}"?`, 
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { 
+            text: 'Contactar', 
+            onPress: async () => {
+              try {
+                await startChat(
+                  product.ownerId, // ← ID del vendedor para el chat
+                  sellerUser.username, 
+                  sellerUser.email,
+                  product.id, // ← ID del producto para el chat
+                  product.title // ← Título del producto para el chat
+                );
+                
+                onClose(); 
+                router.push(`/chat/${product.ownerId}`);
+                
+                Alert.alert(
+                  'Chat iniciado', 
+                  `Ahora puedes chatear con @${sellerUser.username} sobre "${product.title}"`,
+                  [{ text: 'OK' }]
+                );
+                
+              } catch (error) {
+                console.error('Error starting chat:', error);
+                Alert.alert('Error', 'No se pudo iniciar el chat. Intenta nuevamente.');
+              }
+            }
+          },
+        ]
+      );
+
+    } catch (error) {
+      console.error('Error contacting seller:', error);
+      Alert.alert('Error', 'No se pudo contactar al vendedor');
+    } finally {
+      setIsContacting(false);
+    }
   };
+
 
   const handleFavorite = () => {
     setIsFavorite(!isFavorite);
@@ -141,8 +225,16 @@ const ProductModal: FC<ProductModalProps> = ({ visible, product, onClose, TradeN
                     <Text style={styles.sellerMeta}>Miembro verificado</Text>
                   </View>
                 </View>
-                <TouchableOpacity style={styles.contactButton} onPress={handleContact}>
-                  <Text style={styles.contactButtonText}>Contactar</Text>
+                <TouchableOpacity 
+                  style={[styles.contactButton, isContacting && styles.contactButtonDisabled]} 
+                  onPress={handleContact}
+                  disabled={isContacting}
+                >
+                  {isContacting ? (
+                    <ActivityIndicator color="white" size="small" />
+                  ) : (
+                    <Text style={styles.contactButtonText}>Contactar</Text>
+                  )}
                 </TouchableOpacity>
               </View>
             </View>
@@ -525,6 +617,9 @@ const createStyles = (colors: ThemeColors | any) => {
       fontWeight: '700',
       fontSize: 17,
       letterSpacing: 0.3,
+    },
+    contactButtonDisabled: {
+      backgroundColor: '#9ca3af',
     },
   });
 };
