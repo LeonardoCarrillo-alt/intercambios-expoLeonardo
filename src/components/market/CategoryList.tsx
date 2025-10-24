@@ -2,7 +2,11 @@ import React from 'react';
 import { FlatList, Pressable, Text, StyleSheet } from 'react-native';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { ThemeColors } from '../../theme/colors';
-import { useMarketStore } from '../../store/useMarketStore';
+
+type CategoryListProps = {
+  selectedCategory: string | null;
+  onSelectCategory: (category: string | null) => void;
+};
 
 const categories = [
   { id: '1', name: 'Todas' },
@@ -23,20 +27,16 @@ const createStyles = (colors: ThemeColors) =>
       marginRight: 10,
       borderWidth: 1,
     },
-    selected: {
-      backgroundColor: colors.primary,
-    },
     text: {
       fontWeight: '600',
     },
-    textSelected: {
-      color: 'white',
-    },
   });
 
-const CategoryList: React.FC = () => {
+const CategoryList: React.FC<CategoryListProps> = ({
+  selectedCategory,
+  onSelectCategory,
+}) => {
   const { colors } = useThemeColors();
-  const { selectedCategory, setCategory } = useMarketStore();
   const styles = React.useMemo(() => createStyles(colors), [colors]);
 
   return (
@@ -50,18 +50,17 @@ const CategoryList: React.FC = () => {
         const isSelected =
           selectedCategory === item.name ||
           (selectedCategory === null && item.name === 'Todas');
+
         return (
           <Pressable
             onPress={() =>
-              setCategory(item.name === 'Todas' ? null : item.name)
+              onSelectCategory(item.name === 'Todas' ? null : item.name)
             }
             style={[
               styles.card,
               {
                 borderColor: isSelected ? colors.primary : colors.border,
-                backgroundColor: isSelected
-                  ? colors.primary
-                  : colors.surface,
+                backgroundColor: isSelected ? colors.primary : colors.surface,
               },
             ]}
           >
