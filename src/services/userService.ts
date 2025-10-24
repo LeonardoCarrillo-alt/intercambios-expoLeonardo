@@ -29,8 +29,6 @@ export const setUserRole = async (uid: string, role: 'user' | 'admin') => {
   await setDoc(ref, { role }, { merge: true });
 };
 
-// services/userService.ts - AGREGAR esta función
-// Obtener usuario por username
 export const getUserProfile = async (userId: string): Promise<UserProfile | null> => {
   try {
     const userDoc = await getDoc(doc(db, 'users', userId));
@@ -44,7 +42,6 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
   }
 };
 
-// Buscar usuarios por username
 export const searchUsersByUsername = async (username: string): Promise<UserProfile[]> => {
   try {
     const usersRef = collection(db, 'users');
@@ -68,7 +65,6 @@ export const searchUsersByUsername = async (username: string): Promise<UserProfi
   }
 };
 
-// Obtener múltiples usuarios por IDs
 export const getUsersByIds = async (userIds: string[]): Promise<UserProfile[]> => {
   try {
     const users: UserProfile[] = [];

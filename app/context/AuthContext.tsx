@@ -37,19 +37,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { request, response, promptAsync } = useGoogleAuth();
   const setProfile = useProfileStore((s) => s.setProfile);
 
-  // REGISTRO ACTUALIZADO con username
   const signUp = async (email: string, password: string, username: string) => {
     try {
-      // 1. Crear usuario en Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // 2. Actualizar el perfil con el username
       await updateProfile(user, {
         displayName: username
       });
 
-      // 3. Guardar información adicional en Firestore
       await setDoc(doc(db, 'users', user.uid), {
         uid: user.uid,
         email: email,

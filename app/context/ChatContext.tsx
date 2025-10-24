@@ -48,7 +48,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [searchResults, setSearchResults] = useState<UserProfile[]>([]);
   const { user } = useAuth();
 
-  // Escuchar chats del usuario
   useEffect(() => {
     console.log('User:',user);
     if (!user) return;
@@ -82,26 +81,21 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
         console.log('Aceptando oferta...', { messageId, chatId: currentChat.id });
 
-        // 1. Verificar que el usuario actual es el vendedor
         const isSeller = currentChat.participants[0]?.userId === user.uid;
         if (!isSeller) {
             throw new Error('Solo el vendedor puede aceptar ofertas');
         }
 
-        // 2. Verificar que el chat tenga un producto asociado
         if (!currentChat.itemId) {
             throw new Error('Este chat no está asociado a un producto');
         }
 
-        // 3. Actualizar estado de la oferta en Firestore
         await updateOfferStatus(currentChat.id, messageId, 'accepted');
         console.log('Estado de oferta actualizado a "accepted"');
 
-        // 4. Cambiar status del producto a "reserved"
         await updateProductStatus(currentChat.itemId, 'reserved');
         console.log('Producto actualizado a status: "reserved"');
 
-        // 5. Opcional: Enviar mensaje automático confirmando la aceptación
         const userProfile = await getUserProfile(user.uid);
         const username = userProfile?.username || user.displayName || 'Vendedor';
         
@@ -128,17 +122,14 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
         console.log('Rechazando oferta...', { messageId, chatId: currentChat.id });
 
-        // 1. Verificar que el usuario actual es el vendedor
         const isSeller = currentChat.participants[0]?.userId === user.uid;
         if (!isSeller) {
             throw new Error('Solo el vendedor puede rechazar ofertas');
         }
 
-        // 2. Actualizar estado de la oferta en Firestore
         await updateOfferStatus(currentChat.id, messageId, 'rejected');
         console.log('Estado de oferta actualizado a "rejected"');
 
-        // 3. Opcional: Enviar mensaje automático informando el rechazo
         const userProfile = await getUserProfile(user.uid);
         const username = userProfile?.username || user.displayName || 'Vendedor';
         
@@ -158,14 +149,13 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
     
-    // Si no es string pero existe, convertirlo
     if (value !== undefined && value !== null) {
       return String(value);
     }
     
     return null;
   };
-  // Escuchar mensajes del chat actual
+
   useEffect(() => {
     if (!currentChat) {
       setMessages([]);
@@ -220,9 +210,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     try {
       await updateOfferStatus(currentChat.id, messageId, 'accepted');
-      
-      // Aquí puedes agregar lógica para cambiar el status del producto a "reserved"
-      // await updateProductStatus(currentChat.itemId, 'reserved');
       
     } catch (error) {
       console.error('Error accepting offer:', error);
