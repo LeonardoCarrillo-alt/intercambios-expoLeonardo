@@ -60,14 +60,7 @@ const MarketScreen: React.FC = () => {
           <Text style={styles.welcomeText}>Bienvenido al Mercado</Text>
           <Text style={styles.subtitleText}>Encuentra los mejores productos</Text>
         </Animated.View>
-
-        <AnimatedFlatList
-          data={[{ key: 'search' }, { key: 'categories' }, { key: 'products' }]}
-          keyExtractor={(item) => item.key}
-          renderItem={({ item }) => {
-            if (item.key === 'search') {
-              return (
-                <View style={styles.searchContainer}>
+        <View style={styles.searchContainer}>
                   <View style={styles.searchWrapper}>
                     <View style={styles.searchIconContainer}>
                       <Text style={styles.searchIcon}>🔍</Text>
@@ -96,8 +89,16 @@ const MarketScreen: React.FC = () => {
                     </Text>
                   )}
                 </View>
-              );
-            }
+
+        <AnimatedFlatList
+          data={[{ key: 'search' }, { key: 'categories' }, { key: 'products' }]}
+          keyExtractor={(item) => item.key}
+          renderItem={({ item }) => {
+            // if (item.key === 'search') {
+            //   return (
+                
+            //   );
+            // }
             
             if (item.key === 'categories') {
               return (
