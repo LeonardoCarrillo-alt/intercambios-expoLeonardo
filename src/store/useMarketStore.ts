@@ -14,20 +14,23 @@ export interface ProductItem {
   createdAt?: any;
 }
 
-interface MarketStore {
+interface MarketState {
   selectedCategory: string | null;
   products: ProductItem[];
-  setCategory: (category: string | null) => void;
+  searchQuery: string;
+  setSelectedCategory: (category: string | null) => void;
   setProducts: (items: ProductItem[]) => void;
   addProduct: (item: ProductItem) => void;
   updateProduct: (id: string, partial: Partial<ProductItem>) => void;
   removeProduct: (id: string) => void;
+  setSearchQuery: (query: string) => void;
 }
 
-export const useMarketStore = create<MarketStore>((set) => ({
+export const useMarketStore = create<MarketState>((set) => ({
   selectedCategory: null,
   products: [],
-  setCategory: (category) => set({ selectedCategory: category }),
+  searchQuery: "",
+  setSelectedCategory: (category) => set({ selectedCategory: category }),
   setProducts: (items) => set({ products: items }),
   addProduct: (item) =>
     set((state) => ({ products: [item, ...state.products] })),
@@ -37,4 +40,5 @@ export const useMarketStore = create<MarketStore>((set) => ({
     })),
   removeProduct: (id) =>
     set((state) => ({ products: state.products.filter((p) => p.id !== id) })),
+  setSearchQuery: (query) => set({ searchQuery: query }),
 }));

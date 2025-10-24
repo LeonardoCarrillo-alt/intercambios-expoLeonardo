@@ -1,4 +1,3 @@
-// app/(drawer)/_layout.tsx
 import { Drawer } from "expo-router/drawer";
 import { DrawerContentScrollView, DrawerItem } from "@react-navigation/drawer";
 import { useThemeColors } from "../../src/hooks/useThemeColors";
@@ -69,7 +68,7 @@ const DrawerLayout = () => {
             onPress={async () => {
               const res = await logout();
               if (res.success) {
-                props.navigation.navigate("login"); // redirige al login
+                props.navigation.navigate("login");
               } else {
                 console.log("Error al cerrar sesión:", res.error);
               }
@@ -82,8 +81,7 @@ const DrawerLayout = () => {
       <Drawer.Screen
         name="(tabs)"
         options={{
-          title: "Inicio",
-          drawerLabel: "Inicio",
+          headerShown: false,
         }}
       />
       <Drawer.Screen

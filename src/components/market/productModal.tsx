@@ -86,7 +86,7 @@ const ProductModal: FC<ProductModalProps> = ({ visible, product, onClose, TradeN
             </View>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false} bounces={true} contentContainerStyle={styles.scrollContent}>
+          <ScrollView showsVerticalScrollIndicator={false} bounces contentContainerStyle={styles.scrollContent}>
             <View style={styles.imageWrapper}>
               <Image source={{ uri: product.image }} style={styles.image} resizeMode="cover" />
 
@@ -191,8 +191,12 @@ const ProductModal: FC<ProductModalProps> = ({ visible, product, onClose, TradeN
   );
 };
 
-const createStyles = (colors: ThemeColors | any) =>
-  StyleSheet.create({
+const createStyles = (colors: ThemeColors | any) => {
+  const bg = String((colors as any).background ?? '').toLowerCase();
+  const surface = String((colors as any).surface ?? '').toLowerCase();
+  const isLight = bg === '#f8fafc' || surface === '#ffffff';
+
+  return StyleSheet.create({
     modalOverlay: {
       flex: 1,
       justifyContent: 'flex-end',
@@ -225,10 +229,7 @@ const createStyles = (colors: ThemeColors | any) =>
       paddingHorizontal: 20,
       backgroundColor: (colors as any).background,
       borderBottomWidth: 1,
-      borderBottomColor:
-        String((colors as any).background) === '#f8fafc' || String((colors as any).surface) === '#ffffff'
-          ? '#f3f4f6'
-          : 'rgba(255,255,255,0.1)',
+      borderBottomColor: isLight ? '#f3f4f6' : 'rgba(255,255,255,0.1)',
     },
     dragIndicator: {
       alignSelf: 'center',
@@ -248,10 +249,7 @@ const createStyles = (colors: ThemeColors | any) =>
       width: 36,
       height: 36,
       borderRadius: 18,
-      backgroundColor:
-        String((colors as any).background) === '#f8fafc' || String((colors as any).surface) === '#ffffff'
-          ? '#f3f4f6'
-          : 'rgba(255,255,255,0.1)',
+      backgroundColor: isLight ? '#f3f4f6' : 'rgba(255,255,255,0.1)',
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -262,10 +260,7 @@ const createStyles = (colors: ThemeColors | any) =>
       width: 36,
       height: 36,
       borderRadius: 18,
-      backgroundColor:
-        String((colors as any).background) === '#f8fafc' || String((colors as any).surface) === '#ffffff'
-          ? '#f3f4f6'
-          : 'rgba(255,255,255,0.1)',
+      backgroundColor: isLight ? '#f3f4f6' : 'rgba(255,255,255,0.1)',
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -350,10 +345,7 @@ const createStyles = (colors: ThemeColors | any) =>
       lineHeight: 34,
     },
     priceSection: {
-      backgroundColor:
-        String((colors as any).background) === '#f8fafc' || String((colors as any).surface) === '#ffffff'
-          ? '#ecfdf5'
-          : 'rgba(16, 185, 129, 0.15)',
+      backgroundColor: isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.15)',
       padding: 16,
       borderRadius: 12,
       borderLeftWidth: 4,
@@ -374,10 +366,7 @@ const createStyles = (colors: ThemeColors | any) =>
       letterSpacing: -1,
     },
     exchangeSection: {
-      backgroundColor:
-        String((colors as any).background) === '#f8fafc' || String((colors as any).surface) === '#ffffff'
-          ? '#eff6ff'
-          : 'rgba(59, 130, 246, 0.15)',
+      backgroundColor: isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.15)',
       padding: 16,
       borderRadius: 12,
       borderLeftWidth: 4,
@@ -398,10 +387,7 @@ const createStyles = (colors: ThemeColors | any) =>
     },
     divider: {
       height: 1,
-      backgroundColor:
-        String((colors as any).background) === '#f8fafc' || String((colors as any).surface) === '#ffffff'
-          ? '#e5e7eb'
-          : 'rgba(255,255,255,0.1)',
+      backgroundColor: isLight ? '#e5e7eb' : 'rgba(255,255,255,0.1)',
       marginVertical: 20,
       marginHorizontal: 20,
     },
@@ -422,10 +408,7 @@ const createStyles = (colors: ThemeColors | any) =>
       color: `${(colors as any).text}DD`,
     },
     sellerCard: {
-      backgroundColor:
-        String((colors as any).background) === '#f8fafc' || String((colors as any).surface) === '#ffffff'
-          ? '#f9fafb'
-          : 'rgba(255,255,255,0.05)',
+      backgroundColor: isLight ? '#f9fafb' : 'rgba(255,255,255,0.05)',
       padding: 16,
       borderRadius: 12,
       gap: 12,
@@ -481,19 +464,13 @@ const createStyles = (colors: ThemeColors | any) =>
     actionCard: {
       flex: 1,
       minWidth: 100,
-      backgroundColor:
-        String((colors as any).background) === '#f8fafc' || String((colors as any).surface) === '#ffffff'
-          ? '#f9fafb'
-          : 'rgba(255,255,255,0.05)',
+      backgroundColor: isLight ? '#f9fafb' : 'rgba(255,255,255,0.05)',
       padding: 16,
       borderRadius: 12,
       alignItems: 'center',
       gap: 8,
       borderWidth: 1,
-      borderColor:
-        String((colors as any).background) === '#f8fafc' || String((colors as any).surface) === '#ffffff'
-          ? '#e5e7eb'
-          : 'rgba(255,255,255,0.1)',
+      borderColor: isLight ? '#e5e7eb' : 'rgba(255,255,255,0.1)',
     },
     reportCard: {
       borderColor: '#fecaca',
@@ -502,10 +479,7 @@ const createStyles = (colors: ThemeColors | any) =>
       width: 48,
       height: 48,
       borderRadius: 24,
-      backgroundColor:
-        String((colors as any).background) === '#f8fafc' || String((colors as any).surface) === '#ffffff'
-          ? '#fff'
-          : 'rgba(255,255,255,0.1)',
+      backgroundColor: isLight ? '#fff' : 'rgba(255,255,255,0.1)',
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -527,10 +501,7 @@ const createStyles = (colors: ThemeColors | any) =>
       paddingBottom: Platform.OS === 'ios' ? 28 : 20,
       backgroundColor: (colors as any).background,
       borderTopWidth: 1,
-      borderTopColor:
-        String((colors as any).background) === '#f8fafc' || String((colors as any).surface) === '#ffffff'
-          ? '#f3f4f6'
-          : 'rgba(255,255,255,0.1)',
+      borderTopColor: isLight ? '#f3f4f6' : 'rgba(255,255,255,0.1)',
     },
     tradeButton: {
       backgroundColor: '#10b981',
@@ -556,5 +527,6 @@ const createStyles = (colors: ThemeColors | any) =>
       letterSpacing: 0.3,
     },
   });
+};
 
 export default ProductModal;

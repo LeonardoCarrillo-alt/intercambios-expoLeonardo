@@ -2,11 +2,7 @@ import React from 'react';
 import { FlatList, Pressable, Text, StyleSheet } from 'react-native';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { ThemeColors } from '../../theme/colors';
-
-type CategoryListProps = {
-  selectedCategory: string | null;
-  onSelectCategory: (category: string | null) => void;
-};
+import { useMarketStore } from '../../store/useMarketStore';
 
 const categories = [
   { id: '1', name: 'Todas' },
@@ -27,16 +23,12 @@ const createStyles = (colors: ThemeColors) =>
       marginRight: 10,
       borderWidth: 1,
     },
-    text: {
-      fontWeight: '600',
-    },
+    text: { fontWeight: '600' },
   });
 
-const CategoryList: React.FC<CategoryListProps> = ({
-  selectedCategory,
-  onSelectCategory,
-}) => {
+const CategoryList = () => {
   const { colors } = useThemeColors();
+  const { selectedCategory, setSelectedCategory } = useMarketStore();
   const styles = React.useMemo(() => createStyles(colors), [colors]);
 
   return (
@@ -54,7 +46,7 @@ const CategoryList: React.FC<CategoryListProps> = ({
         return (
           <Pressable
             onPress={() =>
-              onSelectCategory(item.name === 'Todas' ? null : item.name)
+              setSelectedCategory(item.name === 'Todas' ? null : item.name)
             }
             style={[
               styles.card,
