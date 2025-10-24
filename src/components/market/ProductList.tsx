@@ -6,7 +6,13 @@ import ProductModal from "./productModal";
 import { ProductCard } from "./productCard";
 import { useMarketStore } from "../../store/useMarketStore";
 
-const ProductList: React.FC<{ products: any[] }> = ({ products }) => {
+interface ProductListProps {
+  products: any[];
+  onDelete?: (id: string) => void;
+  onUpdate?: (id: string, data: any) => void;
+}
+
+const ProductList: React.FC<ProductListProps> = ({ products, onDelete, onUpdate }) => {
   const { colors } = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { selectedCategory, searchQuery } = useMarketStore();
@@ -64,7 +70,15 @@ const ProductList: React.FC<{ products: any[] }> = ({ products }) => {
             status: item.status ?? "approved",
           };
 
-          return <ProductCard product={productData} onPress={() => handleProductPress(item)} />;
+          return (
+            <ProductCard
+              product={productData}
+              onPress={() => handleProductPress(item)}
+              isProfileCard={!!onDelete || !!onUpdate}
+              onDelete={onDelete ? () => onDelete(item.id) : undefined}
+              onUpdate={onUpdate ? (data) => onUpdate(item.id, data) : undefined}
+            />
+          );
         }}
       />
 

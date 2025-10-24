@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Pressable,
   Text,
@@ -6,6 +6,8 @@ import {
   StyleSheet,
   View,
   Platform,
+  TextInput,
+  Button,
 } from 'react-native';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { ThemeColors } from '../../theme/colors';
@@ -25,13 +27,29 @@ export interface Product {
 interface ProductCardProps {
   product: Product;
   onPress?: () => void;
+  isProfileCard?: boolean;
+  onDelete?: () => void;
+  onUpdate?: (data: Partial<Product>) => void;
 }
 
-export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress }) => {
+export const ProductCard: React.FC<ProductCardProps> = ({
+  product,
+  onPress,
+  isProfileCard = false,
+  onDelete,
+  onUpdate,
+}) => {
   const { colors } = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
-
   const isAvailable = product.condition === 'Disponible';
+  const [editing, setEditing] = useState(false);
+  const [title, setTitle] = useState(product.title);
+  const [price, setPrice] = useState(product.price?.toString() ?? '');
+
+  const handleSave = () => {
+    onUpdate?.({ title, price: Number(price) });
+    setEditing(false);
+  };
 
   return (
     <Pressable
@@ -53,38 +71,62 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress }) =>
       </View>
 
       <View style={styles.body}>
-        <Text numberOfLines={2} style={styles.title}>
-          {product.title}
-        </Text>
-
-        <View style={styles.footer}>
-          <View style={styles.priceContainer}>
-            {product.price != null ? (
-              <>
-                <Text style={styles.priceLabel}>Precio</Text>
-                <Text style={styles.price}>Bs {product.price.toFixed(2)}</Text>
-              </>
-            ) : (
-              <Text style={styles.exchangeText}>Intercambio</Text>
-            )}
-          </View>
-
-          <View style={styles.sellerContainer}>
-            <View style={styles.sellerAvatar}>
-              <Text style={styles.sellerInitial}>
-                {product.alias && product.alias[0] ? product.alias[0].toUpperCase() : 'U'}
-              </Text>
-            </View>
-            <Text numberOfLines={1} style={styles.sellerName}>
-              @{product.alias}
+        {editing ? (
+          <>
+            <Text style={styles.label}>Nombre:</Text>
+            <TextInput
+              value={title}
+              onChangeText={setTitle}
+              style={[styles.title, { borderWidth: 1, padding: 4, borderRadius: 6 }]}
+            />
+            <Text style={styles.label}>Precio:</Text>
+            <TextInput
+              value={price}
+              onChangeText={setPrice}
+              keyboardType="numeric"
+              style={[styles.price, { borderWidth: 1, padding: 4, borderRadius: 6, fontSize: 16 }]}
+            />
+            <Button title="Guardar" onPress={handleSave} />
+          </>
+        ) : (
+          <>
+            <Text numberOfLines={2} style={styles.title}>
+              {product.title}
             </Text>
-          </View>
-        </View>
-
-        {product.status && (
-          <View style={{ marginTop: 8 }}>
-            <Text style={{ fontSize: 12, color: '#6b7280', fontWeight: '700' }}>Estado: {product.status}</Text>
-          </View>
+            <View style={styles.footer}>
+              <View style={styles.priceContainer}>
+                {product.price != null ? (
+                  <>
+                    <Text style={styles.priceLabel}>Precio</Text>
+                    <Text style={styles.price}>Bs {product.price.toFixed(2)}</Text>
+                  </>
+                ) : (
+                  <Text style={styles.exchangeText}>Intercambio</Text>
+                )}
+              </View>
+              <View style={styles.sellerContainer}>
+                <View style={styles.sellerAvatar}>
+                  <Text style={styles.sellerInitial}>
+                    {product.alias && product.alias[0] ? product.alias[0].toUpperCase() : 'U'}
+                  </Text>
+                </View>
+                <Text numberOfLines={1} style={styles.sellerName}>
+                  @{product.alias}
+                </Text>
+              </View>
+            </View>
+            {product.status && (
+              <View style={{ marginTop: 8 }}>
+                <Text style={{ fontSize: 12, color: '#6b7280', fontWeight: '700' }}>Estado: {product.status}</Text>
+              </View>
+            )}
+            {isProfileCard && (
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                <Button title="Editar" onPress={() => setEditing(true)} />
+                <Button title="Borrar" color="red" onPress={onDelete} />
+              </View>
+            )}
+          </>
         )}
       </View>
     </Pressable>
@@ -145,23 +187,10 @@ const createStyles = (colors: ThemeColors | any) =>
     unavailableBadge: {
       backgroundColor: 'rgba(239, 68, 68, 0.95)',
     },
-    statusDot: {
-      width: 6,
-      height: 6,
-      borderRadius: 3,
-    },
-    availableDot: {
-      backgroundColor: '#fff',
-    },
-    unavailableDot: {
-      backgroundColor: '#fff',
-    },
-    statusText: {
-      color: '#fff',
-      fontSize: 12,
-      fontWeight: '700',
-      letterSpacing: 0.2,
-    },
+    statusDot: { width: 6, height: 6, borderRadius: 3 },
+    availableDot: { backgroundColor: '#fff' },
+    unavailableDot: { backgroundColor: '#fff' },
+    statusText: { color: '#fff', fontSize: 12, fontWeight: '700', letterSpacing: 0.2 },
     categoryBadge: {
       position: 'absolute',
       top: 12,
@@ -171,33 +200,17 @@ const createStyles = (colors: ThemeColors | any) =>
       paddingVertical: 6,
       borderRadius: 8,
     },
-    categoryText: {
-      color: '#fff',
-      fontSize: 11,
-      fontWeight: '600',
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
-    },
-    body: {
-      padding: 16,
-      gap: 12,
-    },
-    title: {
-      fontSize: 18,
+    categoryText: { color: '#fff', fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+    body: { padding: 16, gap: 12 },
+    label: {
+      fontSize: 14,
       fontWeight: '700',
-      lineHeight: 24,
-      color: (colors as any).text,
       marginBottom: 4,
+      color: (colors as any).text,
     },
-    footer: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'flex-end',
-      gap: 12,
-    },
-    priceContainer: {
-      flex: 1,
-    },
+    title: { fontSize: 18, fontWeight: '700', lineHeight: 24, color: (colors as any).text, marginBottom: 4 },
+    footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', gap: 12 },
+    priceContainer: { flex: 1 },
     priceLabel: {
       fontSize: 11,
       fontWeight: '600',
@@ -206,18 +219,8 @@ const createStyles = (colors: ThemeColors | any) =>
       letterSpacing: 0.5,
       marginBottom: 2,
     },
-    price: {
-      fontSize: 22,
-      fontWeight: '800',
-      color: (colors as any).primary || '#10b981',
-      letterSpacing: -0.5,
-    },
-    exchangeText: {
-      fontSize: 16,
-      fontWeight: '700',
-      color: (colors as any).primary || '#10b981',
-      paddingVertical: 4,
-    },
+    price: { fontSize: 22, fontWeight: '800', color: (colors as any).primary || '#10b981', letterSpacing: -0.5 },
+    exchangeText: { fontSize: 16, fontWeight: '700', color: (colors as any).primary || '#10b981', paddingVertical: 4 },
     sellerContainer: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -231,25 +234,9 @@ const createStyles = (colors: ThemeColors | any) =>
       borderRadius: 20,
       maxWidth: '50%',
     },
-    sellerAvatar: {
-      width: 28,
-      height: 28,
-      borderRadius: 14,
-      backgroundColor: (colors as any).primary || '#10b981',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    sellerInitial: {
-      color: '#fff',
-      fontSize: 13,
-      fontWeight: '700',
-    },
-    sellerName: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: (colors as any).text,
-      flex: 1,
-    },
+    sellerAvatar: { width: 28, height: 28, borderRadius: 14, backgroundColor: (colors as any).primary || '#10b981', alignItems: 'center', justifyContent: 'center' },
+    sellerInitial: { color: '#fff', fontSize: 13, fontWeight: '700' },
+    sellerName: { fontSize: 13, fontWeight: '600', color: (colors as any).text, flex: 1 },
   });
 
 export default ProductCard;

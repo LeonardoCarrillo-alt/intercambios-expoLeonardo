@@ -1,11 +1,25 @@
-import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc, setDoc, orderBy } from "firebase/firestore";
-import { db } from "../../app/config/firebase";
+import {
+  collection,
+  addDoc,
+  serverTimestamp,
+  query,
+  where,
+  getDocs,
+  updateDoc,
+  doc,
+  setDoc,
+  orderBy,
+  deleteDoc,
+  getDoc,
+} from "firebase/firestore";
+import { ref, deleteObject } from "firebase/storage";
+import { db, storage } from "../../app/config/firebase";
 
 export const createProduct = async (payload: any, ownerId: string) => {
   const colRef = collection(db, "products");
   const data = { ...payload, ownerId, status: "pending", createdAt: serverTimestamp() };
-  const ref = await addDoc(colRef, data);
-  return ref.id;
+  const refDoc = await addDoc(colRef, data);
+  return refDoc.id;
 };
 
 export const fetchPendingProducts = async () => {
@@ -29,6 +43,22 @@ export const fetchProductsByOwner = async (uid: string) => {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 };
 
+export const deleteProduct = async (productId: string) => {
+  const docRef = doc(db, "products", productId);
+  const docSnap = await getDoc(docRef);
+  const data: any = docSnap.exists() ? docSnap.data() : {};
+  if (data.image) {
+    const storageRef = ref(storage, data.image);
+    await deleteObject(storageRef).catch(() => {});
+  }
+  await deleteDoc(docRef);
+};
+
+export const updateProduct = async (productId: string, payload: any) => {
+  const docRef = doc(db, "products", productId);
+  await updateDoc(docRef, payload);
+};
+
 export const approveProduct = async (productId: string, adminId: string) => {
   const productRef = doc(db, "products", productId);
   await updateDoc(productRef, { status: "approved", approvedBy: adminId, approvedAt: serverTimestamp() });
@@ -38,7 +68,12 @@ export const approveProduct = async (productId: string, adminId: string) => {
 
 export const rejectProduct = async (productId: string, adminId: string, reason?: string) => {
   const productRef = doc(db, "products", productId);
-  await updateDoc(productRef, { status: "rejected", rejectedBy: adminId, rejectedAt: serverTimestamp(), rejectedReason: reason || null });
+  await updateDoc(productRef, {
+    status: "rejected",
+    rejectedBy: adminId,
+    rejectedAt: serverTimestamp(),
+    rejectedReason: reason || null,
+  });
   const logRef = doc(collection(productRef, "moderationLogs"));
   await setDoc(logRef, { action: "rejected", reason: reason || null, adminId, timestamp: serverTimestamp() });
 };
