@@ -22,6 +22,8 @@ import { getUserDoc } from '../../services/userService';
 import { getDownloadURL, ref as storageRef } from 'firebase/storage';
 import { storage, db } from '../../../app/config/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import { Ionicons } from '@expo/vector-icons';
+
 
 export interface Product {
   id: string;
@@ -263,10 +265,11 @@ const ProductModal: FC<ProductModalProps> = ({ visible, product, onClose, TradeN
             <View style={styles.dragIndicator} />
             <View style={styles.headerActions}>
               <TouchableOpacity onPress={handleFavorite} style={styles.iconButton} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Text style={styles.iconText}>{isFavorite ? '❤️' : '🤍'}</Text>
+                <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={22} color={isFavorite ? '#ef4444' : colors.text} />
               </TouchableOpacity>
               <TouchableOpacity onPress={onClose} style={styles.closeButton} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Text style={styles.closeText}>✕</Text>
+                <Ionicons name="close" size={22} color={colors.text} />
+
               </TouchableOpacity>
             </View>
           </View>
@@ -316,14 +319,20 @@ const ProductModal: FC<ProductModalProps> = ({ visible, product, onClose, TradeN
             <View style={styles.divider} />
 
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>📝 Descripción</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="document-text-outline" size={20} color={colors.text} />
+                <Text style={styles.sectionLabel}>Descripción</Text>
+              </View>
               <Text style={styles.text}>{product.description || 'Sin descripción disponible.'}</Text>
             </View>
 
             <View style={styles.divider} />
 
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>👤 Vendedor</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Ionicons name="person-outline" size={20} color={colors.text} />
+                  <Text style={styles.sectionLabel}>Vendedor</Text>
+              </View>
               <View style={styles.sellerCard}>
                 <View style={styles.sellerInfo}>
                   {loadingOwner ? (
@@ -351,25 +360,29 @@ const ProductModal: FC<ProductModalProps> = ({ visible, product, onClose, TradeN
             <View style={styles.divider} />
 
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>⚙️ Opciones</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="settings-outline" size={20} color={colors.text} />
+                <Text style={styles.sectionLabel}>Opciones</Text>
+              </View>
               <View style={styles.actionsGrid}>
                 <TouchableOpacity style={styles.actionCard} onPress={handleFavorite}>
                   <View style={styles.actionIcon}>
-                    <Text style={styles.actionEmoji}>{isFavorite ? '❤️' : '🤍'}</Text>
+                    <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={22} color={isFavorite ? '#ef4444' : colors.text} />
+
                   </View>
                   <Text style={styles.actionText}>{isFavorite ? 'En Favoritos' : 'Agregar a Favoritos'}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.actionCard} onPress={() => Alert.alert('Compartir', 'Funcionalidad de compartir próximamente')}>
                   <View style={styles.actionIcon}>
-                    <Text style={styles.actionEmoji}>📤</Text>
+                    <Ionicons name="share-outline" size={24} color={colors.text} />
                   </View>
                   <Text style={styles.actionText}>Compartir</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={[styles.actionCard, styles.reportCard]} onPress={handleReport}>
                   <View style={styles.actionIcon}>
-                    <Text style={styles.actionEmoji}>⚠️</Text>
+                    <Ionicons name="alert-circle-outline" size={24} color="#ef4444" />
                   </View>
                   <Text style={[styles.actionText, styles.reportText]}>Reportar</Text>
                 </TouchableOpacity>
@@ -382,7 +395,10 @@ const ProductModal: FC<ProductModalProps> = ({ visible, product, onClose, TradeN
           {isAvailable && (
             <View style={styles.footer}>
               <TouchableOpacity style={styles.tradeButton} onPress={() => TradeNow(product)} activeOpacity={0.8}>
-                <Text style={styles.tradeButtonText}>🔄 Intercambiar Ahora</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Ionicons name="swap-horizontal-outline" size={20} color="white" />
+                  <Text style={styles.tradeButtonText}>Intercambiar Ahora</Text>
+                </View>
               </TouchableOpacity>
             </View>
           )}

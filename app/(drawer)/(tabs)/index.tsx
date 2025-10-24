@@ -18,6 +18,7 @@ import { useThemeColors } from "../../../src/hooks/useThemeColors";
 import { ThemeColors } from "../../../src/theme/colors";
 import { fetchApprovedProducts } from "../../../src/services/productService";
 import { useMarketStore } from "../../../src/store/useMarketStore";
+import { Ionicons } from '@expo/vector-icons';
 
 const MarketScreen: React.FC = () => {
   const { colors } = useThemeColors();
@@ -99,7 +100,8 @@ const MarketScreen: React.FC = () => {
         <View style={styles.searchContainer}>
           <View style={styles.searchWrapper}>
             <View style={styles.searchIconContainer}>
-              <Text style={styles.searchIcon}>🔍</Text>
+              <Ionicons name="search-outline" size={22} color={colors.textSecondary || '#6c757d'} />
+
             </View>
             <TextInput
               style={styles.searchInput}
@@ -111,7 +113,7 @@ const MarketScreen: React.FC = () => {
             />
             {searchQuery?.length > 0 && (
               <TouchableOpacity style={styles.clearButton} onPress={clearSearch} activeOpacity={0.7}>
-                <Text style={styles.clearIcon}>✕</Text>
+                <Ionicons name="close-outline" size={22} color={colors.textSecondary || '#6c757d'} />
               </TouchableOpacity>
             )}
           </View>
@@ -200,7 +202,7 @@ const createStyles = (colors: ThemeColors) =>
     },
     subtitleText: {
       fontSize: 15,
-      color: colors.subtitle || "#e0e0e0",
+      color:  "#e0e0e0",
       fontWeight: "400",
       opacity: 0.9,
     },

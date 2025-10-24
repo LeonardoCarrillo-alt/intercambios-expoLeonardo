@@ -20,6 +20,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { updateProfile } from 'firebase/auth';
 import { useThemeColors } from '../../../../src/hooks/useThemeColors';
 import { ThemeColors } from '../../../../src/theme/colors';
+import { Ionicons } from '@expo/vector-icons';
 
 const ProfileScreen = () => {
   const [photoUrl, setPhotoUrl] = useState<string | undefined>();
@@ -182,7 +183,7 @@ const ProfileScreen = () => {
                   onPress={handlePickImage}
                   disabled={uploading}
                 >
-                  <Text style={styles.cameraIcon}>📷</Text>
+                  <Ionicons name="camera-outline" size={18} color="#fff" />
                 </Pressable>
               )}
             </View>
@@ -203,7 +204,7 @@ const ProfileScreen = () => {
               <ActivityIndicator color="#ffffff" size="small" />
             ) : (
               <>
-                <Text style={styles.uploadIcon}>🖼️</Text>
+                <Ionicons name="image-outline" size={18} color="#fff" />
                 <Text style={styles.uploadLabel}>Cambiar Foto de Perfil</Text>
               </>
             )}
@@ -217,41 +218,41 @@ const ProfileScreen = () => {
           <Pressable style={styles.optionItem}>
             <View style={styles.optionLeft}>
               <View style={[styles.optionIconContainer, { backgroundColor: '#e3f2fd' }]}>
-                <Text style={styles.optionIcon}>👤</Text>
+                <Ionicons name="person-outline" size={20} color={colors.text} />
               </View>
               <Text style={styles.optionText}>Editar Perfil</Text>
             </View>
-            <Text style={styles.optionArrow}>›</Text>
+            <Ionicons name="chevron-forward-outline" size={22} color={colors.textSecondary || '#6c757d'} />
           </Pressable>
 
           <Pressable style={styles.optionItem}>
             <View style={styles.optionLeft}>
               <View style={[styles.optionIconContainer, { backgroundColor: '#f3e5f5' }]}>
-                <Text style={styles.optionIcon}>🔔</Text>
+                <Ionicons name="notifications-outline" size={20} color={colors.text} />
               </View>
               <Text style={styles.optionText}>Notificaciones</Text>
             </View>
-            <Text style={styles.optionArrow}>›</Text>
+            <Ionicons name="chevron-forward-outline" size={22} color={colors.textSecondary || '#6c757d'} />
           </Pressable>
 
           <Pressable style={styles.optionItem}>
             <View style={styles.optionLeft}>
               <View style={[styles.optionIconContainer, { backgroundColor: '#fff3e0' }]}>
-                <Text style={styles.optionIcon}>🔒</Text>
+                <Ionicons name="lock-closed-outline" size={20} color={colors.text} />
               </View>
               <Text style={styles.optionText}>Privacidad y Seguridad</Text>
             </View>
-            <Text style={styles.optionArrow}>›</Text>
+            <Ionicons name="chevron-forward-outline" size={22} color={colors.textSecondary || '#6c757d'} />
           </Pressable>
 
           <Pressable style={styles.optionItem}>
             <View style={styles.optionLeft}>
               <View style={[styles.optionIconContainer, { backgroundColor: '#e8f5e9' }]}>
-                <Text style={styles.optionIcon}>❓</Text>
+                <Ionicons name="help-circle-outline" size={20} color={colors.text} />
               </View>
               <Text style={styles.optionText}>Ayuda y Soporte</Text>
             </View>
-            <Text style={styles.optionArrow}>›</Text>
+            <Ionicons name="chevron-forward-outline" size={22} color={colors.textSecondary || '#6c757d'} />
           </Pressable>
         </View>
 
@@ -261,7 +262,7 @@ const ProfileScreen = () => {
             style={styles.logoutButton} 
             onPress={handleLogout}
           >
-            <Text style={styles.logoutIcon}>🚪</Text>
+            <Ionicons name="exit-outline" size={20} color="#fff" />
             <Text style={styles.logoutLabel}>Cerrar Sesión</Text>
           </Pressable>
         </View>
