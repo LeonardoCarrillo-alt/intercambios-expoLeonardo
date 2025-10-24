@@ -51,8 +51,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const [title, setTitle] = useState(product.title);
   const [price, setPrice] = useState(product.price?.toString() ?? '');
   const [ownerName, setOwnerName] = useState<string | null>(product.alias ?? null);
+  const [ownerAvatar, setOwnerAvatar] = useState<string | null>(null);
   const [imageUri, setImageUri] = useState<string | null>(product.image ?? null);
   const [loadingImage, setLoadingImage] = useState(false);
+  const [loadingOwner, setLoadingOwner] = useState(false);
 
   const handleSave = () => {
     onUpdate?.({ title, price: Number(price) });
@@ -62,23 +64,36 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   useEffect(() => {
     let mounted = true;
     (async () => {
+      if (!product) return;
       if (product.ownerId) {
         try {
+          setLoadingOwner(true);
           const user = await getUserDoc(product.ownerId);
           if (!mounted) return;
           const name = (user && (user.username || user.displayName)) ?? product.alias ?? 'Usuario';
           setOwnerName(name);
+          const avatar =
+            (user &&
+              (user.photoUrl || user.photoURL || user.avatarUrl || user.profileImage || user.image || user.picture)) ??
+            null;
+          setOwnerAvatar(avatar);
         } catch {
-          if (mounted) setOwnerName(product.alias ?? 'Usuario');
+          if (mounted) {
+            setOwnerName(product.alias ?? 'Usuario');
+            setOwnerAvatar(null);
+          }
+        } finally {
+          if (mounted) setLoadingOwner(false);
         }
       } else {
         setOwnerName(product.alias ?? 'Usuario');
+        setOwnerAvatar(null);
       }
     })();
     return () => {
       mounted = false;
     };
-  }, [product.ownerId, product.alias]);
+  }, [product?.ownerId, product?.alias]);
 
   useEffect(() => {
     let mounted = true;
@@ -173,11 +188,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 )}
               </View>
               <View style={styles.sellerContainer}>
-                <View style={styles.sellerAvatar}>
-                  <Text style={styles.sellerInitial}>
-                    {ownerName && ownerName[0] ? ownerName[0].toUpperCase() : 'U'}
-                  </Text>
-                </View>
+                {loadingOwner ? (
+                  <View style={styles.sellerAvatar}>
+                    <ActivityIndicator />
+                  </View>
+                ) : ownerAvatar ? (
+                  <Image source={{ uri: ownerAvatar }} style={styles.sellerAvatarImage} />
+                ) : (
+                  <View style={styles.sellerAvatar}>
+                    <Text style={styles.sellerInitial}>
+                      {ownerName && ownerName[0] ? ownerName[0].toUpperCase() : 'U'}
+                    </Text>
+                  </View>
+                )}
                 <Text numberOfLines={1} style={styles.sellerName}>
                   @{ownerName ?? 'Usuario'}
                 </Text>
@@ -304,6 +327,7 @@ const createStyles = (colors: ThemeColors | any) =>
       maxWidth: '50%',
     },
     sellerAvatar: { width: 28, height: 28, borderRadius: 14, backgroundColor: (colors as any).primary || '#10b981', alignItems: 'center', justifyContent: 'center' },
+    sellerAvatarImage: { width: 28, height: 28, borderRadius: 14 },
     sellerInitial: { color: '#fff', fontSize: 13, fontWeight: '700' },
     sellerName: { fontSize: 13, fontWeight: '600', color: (colors as any).text, flex: 1 },
   });
