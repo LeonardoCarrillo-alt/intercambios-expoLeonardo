@@ -1,4 +1,3 @@
-// src/services/cloudinary.ts
 type UploadResult = {
   secure_url: string;
   public_id?: string;
@@ -54,8 +53,6 @@ export const uploadToCloudinary = async (uri: string, options?: { width?: number
   };
 
   if (options?.width && data.public_id) {
-    // Construimos la URL de la miniatura mediante la sintaxis de transformación en la URL pública de Cloudinary.
-    // Si el public_id contiene slashes (carpetas), Cloudinary los acepta en la ruta.
     const safePublicId = data.public_id;
     const fmt = data.format || "jpg";
     result.thumb_url = `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/c_scale,w_${options.width}/${safePublicId}.${fmt}`;

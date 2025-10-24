@@ -53,8 +53,10 @@ const ProductModal: FC<ProductModalProps> = ({ visible, product, onClose, TradeN
   const { startChat } = useChat();
   const [isContacting, setIsContacting] = useState(false);
   const [ownerName, setOwnerName] = useState<string | null>(product?.alias ?? null);
+  const [ownerAvatar, setOwnerAvatar] = useState<string | null>(null);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [loadingImage, setLoadingImage] = useState(false);
+  const [loadingOwner, setLoadingOwner] = useState(false);
 
   useEffect(() => {
     if (!product) return;
@@ -62,15 +64,27 @@ const ProductModal: FC<ProductModalProps> = ({ visible, product, onClose, TradeN
     (async () => {
       if (product.ownerId) {
         try {
+          setLoadingOwner(true);
           const userDoc = await getUserDoc(product.ownerId);
           if (!mounted) return;
           const name = (userDoc && (userDoc.username || userDoc.displayName)) ?? product.alias ?? 'Usuario';
           setOwnerName(name);
+          const avatar =
+            (userDoc &&
+              (userDoc.photoUrl || userDoc.photoURL || userDoc.avatarUrl || userDoc.profileImage || userDoc.image || userDoc.picture)) ??
+            null;
+          setOwnerAvatar(avatar);
         } catch {
-          if (mounted) setOwnerName(product.alias ?? 'Usuario');
+          if (mounted) {
+            setOwnerName(product.alias ?? 'Usuario');
+            setOwnerAvatar(null);
+          }
+        } finally {
+          if (mounted) setLoadingOwner(false);
         }
       } else {
         setOwnerName(product.alias ?? 'Usuario');
+        setOwnerAvatar(null);
       }
     })();
     return () => {
@@ -200,6 +214,8 @@ const ProductModal: FC<ProductModalProps> = ({ visible, product, onClose, TradeN
             try {
               await startChat(
                 product.ownerId ?? sellerUser.uid,
+                sellerUser.username ?? ownerName ?? '',
+                sellerUser.email ?? '',
                 product.id,
                 product.title
               );
@@ -310,19 +326,23 @@ const ProductModal: FC<ProductModalProps> = ({ visible, product, onClose, TradeN
               <Text style={styles.sectionLabel}>👤 Vendedor</Text>
               <View style={styles.sellerCard}>
                 <View style={styles.sellerInfo}>
-                  <View style={styles.sellerAvatar}>
-                    <Text style={styles.sellerInitial}>{(ownerName || product.alias || 'U')[0].toUpperCase()}</Text>
-                  </View>
+                  {loadingOwner ? (
+                    <View style={styles.sellerAvatar}>
+                      <ActivityIndicator />
+                    </View>
+                  ) : ownerAvatar ? (
+                    <Image source={{ uri: ownerAvatar }} style={styles.sellerAvatar} />
+                  ) : (
+                    <View style={styles.sellerAvatar}>
+                      <Text style={styles.sellerInitial}>{(ownerName || product.alias || 'U')[0].toUpperCase()}</Text>
+                    </View>
+                  )}
                   <View style={styles.sellerDetails}>
                     <Text style={styles.sellerName}>@{ownerName || product.alias || 'Usuario no disponible'}</Text>
                     <Text style={styles.sellerMeta}>Miembro verificado</Text>
                   </View>
                 </View>
-                <TouchableOpacity
-                  style={[styles.contactButton, isContacting && styles.contactButtonDisabled]}
-                  onPress={handleContact}
-                  disabled={isContacting}
-                >
+                <TouchableOpacity style={[styles.contactButton, isContacting && styles.contactButtonDisabled]} onPress={handleContact}>
                   {isContacting ? <ActivityIndicator color="white" size="small" /> : <Text style={styles.contactButtonText}>Contactar</Text>}
                 </TouchableOpacity>
               </View>
@@ -580,14 +600,10 @@ const createStyles = (colors: ThemeColors | any) => {
       padding: 16,
       borderRadius: 12,
       gap: 12,
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
     },
     sellerInfo: {
       flexDirection: 'row',
       alignItems: 'center',
-      flex: 1,
     },
     sellerAvatar: {
       width: 50,
