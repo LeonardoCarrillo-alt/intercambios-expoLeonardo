@@ -58,6 +58,19 @@ const TabsLayout = () => {
         }}
       />
       <Tabs.Screen
+        name="my-posts/index"
+        options={{
+          title: 'Mis Publicaciones',
+          tabBarIcon: ({ color, focused, size }) => (
+            <Ionicons 
+              name={focused ? 'book' : 'book-outline'} 
+              size={size} 
+              color={color} 
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="settings/index"
         options={{
           title: 'Configuracion',
