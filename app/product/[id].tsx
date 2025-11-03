@@ -20,7 +20,7 @@ import { useChat } from '../context/ChatContext';
 import { Ionicons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
-
+//proyecto
 export default function ProductDetailScreen() {
   const { colors } = useThemeColors();
   const { id } = useLocalSearchParams();
