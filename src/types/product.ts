@@ -9,4 +9,11 @@ export interface Product {
   alias?: string | null;
   availability?: string;
   status?: string;
+  location?: {
+    latitude: number;
+    longitude: number;
+    address?: string;
+    meetingPoint?: string; // Punto de encuentro específico
+  };
+  ownerId?: string;
 }
