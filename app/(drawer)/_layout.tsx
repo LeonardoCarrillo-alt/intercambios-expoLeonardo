@@ -161,7 +161,14 @@ const DrawerLayout = () => {
           drawerLabel: "Chat",
         }}
       />
-
+      <Drawer.Screen
+        name="routes"
+        options={{
+          title: "Ruta",
+          drawerLabel: "Ruta",
+          headerShown: true,
+        }}
+      />
       {isAdmin && (
         <Drawer.Screen
           name="moderation/index"

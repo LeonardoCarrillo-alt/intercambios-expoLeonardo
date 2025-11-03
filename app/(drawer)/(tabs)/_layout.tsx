@@ -44,6 +44,7 @@ const TabsLayout = () => {
           ),
         }}
       />
+      
       <Tabs.Screen
         name="profile/index"
         options={{
