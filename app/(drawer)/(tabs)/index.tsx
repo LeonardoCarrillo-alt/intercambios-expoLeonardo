@@ -11,6 +11,7 @@ import {
   StatusBar,
   Platform,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import CategoryList from "../../../src/components/market/CategoryList";
 import ProductList from "../../../src/components/market/ProductList";
@@ -28,26 +29,40 @@ const MarketScreen: React.FC = () => {
 
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
 
   const [scrollY] = useState(() => new Animated.Value(0));
   const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
 
+  const load = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
+    try {
+      const list = await fetchApprovedProducts();
+      setProducts(list || []);
+    } catch (e) {
+      console.log("Error loading products:", e);
+    } finally {
+      if (showLoading) setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const list = await fetchApprovedProducts();
-        setProducts(list || []);
-      } catch (e) {
-        console.log("Error loading products:", e);
-      } finally {
-        setLoading(false);
-      }
-    };
     load();
   }, []);
 
-  const headerOpacity = scrollY.interpolate({
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const list = await fetchApprovedProducts();
+      setProducts(list || []);
+    } catch (e) {
+      console.log("Error refreshing products:", e);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const headerOpacity = (scrollY as any).interpolate({
     inputRange: [0, 50],
     outputRange: [1, 0.95],
     extrapolate: "clamp",
@@ -100,8 +115,7 @@ const MarketScreen: React.FC = () => {
         <View style={styles.searchContainer}>
           <View style={styles.searchWrapper}>
             <View style={styles.searchIconContainer}>
-              <Ionicons name="search-outline" size={22} color={colors.textSecondary || '#6c757d'} />
-
+              <Ionicons name="search-outline" size={22} color={colors.subtitle || '#6c757d'} />
             </View>
             <TextInput
               style={styles.searchInput}
@@ -113,7 +127,7 @@ const MarketScreen: React.FC = () => {
             />
             {searchQuery?.length > 0 && (
               <TouchableOpacity style={styles.clearButton} onPress={clearSearch} activeOpacity={0.7}>
-                <Ionicons name="close-outline" size={22} color={colors.textSecondary || '#6c757d'} />
+                <Ionicons name="close-outline" size={22} color={colors.subtitle || '#6c757d'} />
               </TouchableOpacity>
             )}
           </View>
@@ -159,6 +173,14 @@ const MarketScreen: React.FC = () => {
             useNativeDriver: true,
           })}
           scrollEventThrottle={16}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[colors.primary || "#10b981"]}
+              tintColor={colors.primary || "#10b981"}
+            />
+          }
         />
       </View>
     </>
@@ -202,7 +224,7 @@ const createStyles = (colors: ThemeColors) =>
     },
     subtitleText: {
       fontSize: 15,
-      color:  "#e0e0e0",
+      color: colors.subtitle || "#e0e0e0",
       fontWeight: "400",
       opacity: 0.9,
     },

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Stack } from "expo-router";
-import { View, Text, ActivityIndicator, Alert } from "react-native";
+import { View, Text, ActivityIndicator, Alert, RefreshControl } from "react-native";
 import { useThemeColors } from "../../../../src/hooks/useThemeColors";
 import { ThemeColors } from "../../../../src/theme/colors";
 import { useAuth } from "../../../context/AuthContext";
@@ -14,21 +14,31 @@ const MyPostsScreen: React.FC = () => {
 
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const loadProducts = async () => {
+  const loadProducts = async (showLoading = true) => {
     if (!user) return;
-    setLoading(true);
+    if (showLoading) setLoading(true);
     try {
       const list = await fetchProductsByOwner(user.uid);
       setProducts(list);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
   useEffect(() => {
     loadProducts();
   }, [user]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await loadProducts(false);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const handleDelete = (id: string) => {
     Alert.alert("Confirmar", "¿Deseas eliminar esta publicación?", [
@@ -61,6 +71,8 @@ const MyPostsScreen: React.FC = () => {
           products={products}
           onDelete={handleDelete}
           onUpdate={handleUpdate}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
         />
       )}
     </View>
