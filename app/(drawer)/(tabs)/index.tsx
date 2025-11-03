@@ -11,40 +11,58 @@ import {
   StatusBar,
   Platform,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import CategoryList from "../../../src/components/market/CategoryList";
 import ProductList from "../../../src/components/market/ProductList";
 import { useThemeColors } from "../../../src/hooks/useThemeColors";
 import { ThemeColors } from "../../../src/theme/colors";
 import { fetchApprovedProducts } from "../../../src/services/productService";
-import { useMarketStore } from "../../../src/store/useMarketStore";
+import { useMarketStore, ProductItem } from "../../../src/store/useMarketStore";
 
 const MarketScreen: React.FC = () => {
   const { colors } = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const { searchQuery, setSearchQuery, selectedCategory, setSelectedCategory } = useMarketStore();
+  const setMarketProducts = useMarketStore((s) => s.setProducts);
 
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
 
   const [scrollY] = useState(() => new Animated.Value(0));
   const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
 
+  const load = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
+    try {
+      const list = await fetchApprovedProducts();
+      setProducts(list || []);
+      setMarketProducts((list || []) as ProductItem[]);
+    } catch (e) {
+      console.log("Error loading products:", e);
+    } finally {
+      if (showLoading) setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const list = await fetchApprovedProducts();
-        setProducts(list || []);
-      } catch (e) {
-        console.log("Error loading products:", e);
-      } finally {
-        setLoading(false);
-      }
-    };
     load();
   }, []);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const list = await fetchApprovedProducts();
+      setProducts(list || []);
+      setMarketProducts((list || []) as ProductItem[]);
+    } catch (e) {
+      console.log("Error refreshing products:", e);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const headerOpacity = scrollY.interpolate({
     inputRange: [0, 50],
@@ -147,7 +165,7 @@ const MarketScreen: React.FC = () => {
                     <Text style={styles.sectionTitle}>Productos Destacados</Text>
                   </View>
                 </View>
-                <ProductList products={filteredProducts} />
+                <ProductList products={filteredProducts} refreshing={refreshing} onRefresh={onRefresh} />
               </View>
             );
           }}
@@ -157,6 +175,14 @@ const MarketScreen: React.FC = () => {
             useNativeDriver: true,
           })}
           scrollEventThrottle={16}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[colors.primary || "#10b981"]}
+              tintColor={colors.primary || "#10b981"}
+            />
+          }
         />
       </View>
     </>

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { View, StyleSheet, FlatList, ActivityIndicator } from "react-native";
+import { View, StyleSheet, FlatList, ActivityIndicator, RefreshControl } from "react-native";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { ThemeColors } from "../../theme/colors";
 import ProductModal from "./productModal";
@@ -10,9 +10,11 @@ interface ProductListProps {
   products: any[];
   onDelete?: (id: string) => void;
   onUpdate?: (id: string, data: any) => void;
+  refreshing?: boolean;
+  onRefresh?: () => void;
 }
 
-const ProductList: React.FC<ProductListProps> = ({ products, onDelete, onUpdate }) => {
+const ProductList: React.FC<ProductListProps> = ({ products, onDelete, onUpdate, refreshing = false, onRefresh }) => {
   const { colors } = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { selectedCategory, searchQuery } = useMarketStore();
@@ -80,6 +82,16 @@ const ProductList: React.FC<ProductListProps> = ({ products, onDelete, onUpdate 
             />
           );
         }}
+        refreshControl={
+          onRefresh ? (
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[ (colors as any).primary || "#10b981" ]}
+              tintColor={(colors as any).primary || "#10b981"}
+            />
+          ) : undefined
+        }
       />
 
       <ProductModal
