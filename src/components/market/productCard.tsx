@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   Pressable,
   Text,
@@ -8,20 +8,25 @@ import {
   Platform,
   TextInput,
   Button,
+  ActivityIndicator,
 } from 'react-native';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { ThemeColors } from '../../theme/colors';
+import { getUserDoc } from '../../services/userService';
+import { getDownloadURL, ref as storageRef } from 'firebase/storage';
+import { storage } from '../../../app/config/firebase';
 
 export interface Product {
   id: string;
   title: string;
   price?: number;
-  image: string;
+  image?: string;
   description?: string;
   condition: 'Disponible' | 'No Disponible';
   category?: string;
-  alias: string;
+  alias?: string | null;
   status?: 'pending' | 'approved' | 'rejected' | 'sold';
+  ownerId?: string | null;
 }
 
 interface ProductCardProps {
@@ -45,11 +50,81 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(product.title);
   const [price, setPrice] = useState(product.price?.toString() ?? '');
+  const [ownerName, setOwnerName] = useState<string | null>(product.alias ?? null);
+  const [ownerAvatar, setOwnerAvatar] = useState<string | null>(null);
+  const [imageUri, setImageUri] = useState<string | null>(product.image ?? null);
+  const [loadingImage, setLoadingImage] = useState(false);
+  const [loadingOwner, setLoadingOwner] = useState(false);
 
   const handleSave = () => {
     onUpdate?.({ title, price: Number(price) });
     setEditing(false);
   };
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      if (!product) return;
+      if (product.ownerId) {
+        try {
+          setLoadingOwner(true);
+          const user = await getUserDoc(product.ownerId);
+          if (!mounted) return;
+          const name = (user && (user.username || user.displayName)) ?? product.alias ?? 'Usuario';
+          setOwnerName(name);
+          const avatar =
+            (user &&
+              (user.photoUrl || user.photoURL || user.avatarUrl || user.profileImage || user.image || user.picture)) ??
+            null;
+          setOwnerAvatar(avatar);
+        } catch {
+          if (mounted) {
+            setOwnerName(product.alias ?? 'Usuario');
+            setOwnerAvatar(null);
+          }
+        } finally {
+          if (mounted) setLoadingOwner(false);
+        }
+      } else {
+        setOwnerName(product.alias ?? 'Usuario');
+        setOwnerAvatar(null);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [product?.ownerId, product?.alias]);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      setLoadingImage(true);
+      try {
+        const img = product.image;
+        if (!img) {
+          if (mounted) setImageUri(null);
+          return;
+        }
+        if (img.startsWith('http://') || img.startsWith('https://')) {
+          if (mounted) setImageUri(img);
+        } else {
+          try {
+            const url = await getDownloadURL(storageRef(storage, img));
+            if (mounted) setImageUri(url);
+          } catch {
+            if (mounted) setImageUri(img);
+          }
+        }
+      } catch {
+        if (mounted) setImageUri(product.image ?? null);
+      } finally {
+        if (mounted) setLoadingImage(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [product.image]);
 
   return (
     <Pressable
@@ -58,7 +133,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       android_ripple={{ color: `${(colors as any).primary}20` }}
     >
       <View style={styles.imageContainer}>
-        <Image source={{ uri: product.image }} style={styles.image} resizeMode="cover" />
+        {loadingImage ? (
+          <View style={styles.image}>
+            <ActivityIndicator />
+          </View>
+        ) : imageUri ? (
+          <Image source={{ uri: imageUri }} style={styles.image} resizeMode="cover" />
+        ) : (
+          <View style={[styles.image, styles.placeholder]} />
+        )}
         <View style={[styles.statusBadge, isAvailable ? styles.availableBadge : styles.unavailableBadge]}>
           <View style={[styles.statusDot, isAvailable ? styles.availableDot : styles.unavailableDot]} />
           <Text style={styles.statusText}>{isAvailable ? 'Disponible' : 'No disponible'}</Text>
@@ -105,13 +188,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 )}
               </View>
               <View style={styles.sellerContainer}>
-                <View style={styles.sellerAvatar}>
-                  <Text style={styles.sellerInitial}>
-                    {product.alias && product.alias[0] ? product.alias[0].toUpperCase() : 'U'}
-                  </Text>
-                </View>
+                {loadingOwner ? (
+                  <View style={styles.sellerAvatar}>
+                    <ActivityIndicator />
+                  </View>
+                ) : ownerAvatar ? (
+                  <Image source={{ uri: ownerAvatar }} style={styles.sellerAvatarImage} />
+                ) : (
+                  <View style={styles.sellerAvatar}>
+                    <Text style={styles.sellerInitial}>
+                      {ownerName && ownerName[0] ? ownerName[0].toUpperCase() : 'U'}
+                    </Text>
+                  </View>
+                )}
                 <Text numberOfLines={1} style={styles.sellerName}>
-                  @{product.alias}
+                  @{ownerName ?? 'Usuario'}
                 </Text>
               </View>
             </View>
@@ -170,6 +261,7 @@ const createStyles = (colors: ThemeColors | any) =>
       width: '100%',
       height: '100%',
     },
+    placeholder: { backgroundColor: '#eee' },
     statusBadge: {
       position: 'absolute',
       top: 12,
@@ -235,6 +327,7 @@ const createStyles = (colors: ThemeColors | any) =>
       maxWidth: '50%',
     },
     sellerAvatar: { width: 28, height: 28, borderRadius: 14, backgroundColor: (colors as any).primary || '#10b981', alignItems: 'center', justifyContent: 'center' },
+    sellerAvatarImage: { width: 28, height: 28, borderRadius: 14 },
     sellerInitial: { color: '#fff', fontSize: 13, fontWeight: '700' },
     sellerName: { fontSize: 13, fontWeight: '600', color: (colors as any).text, flex: 1 },
   });

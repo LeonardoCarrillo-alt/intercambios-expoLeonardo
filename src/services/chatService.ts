@@ -1,3 +1,5 @@
+
+import { db } from 'app/config/firebase';
 import { 
   collection, 
   doc, 
@@ -10,7 +12,6 @@ import {
   serverTimestamp,
   getDocs 
 } from 'firebase/firestore';
-import { db } from '../../app/config/firebase';
 
 export interface Message {
   id?: string;
@@ -19,6 +20,9 @@ export interface Message {
   senderName: string;
   timestamp: any;
   read: boolean;
+  type: 'text' | 'offer'; 
+  offerAmount?: number; 
+  offerStatus?: 'pending' | 'accepted' | 'rejected'; 
 }
 
 export interface Chat {
@@ -28,32 +32,67 @@ export interface Chat {
     userId: string;
     name: string;
     email: string;
+    username: string;
   }>;
+  itemId?: string; 
+  itemTitle?: string; 
   lastMessage?: string;
   lastMessageTime?: any;
   createdAt: any;
 }
 
-export const getOrCreateChat = async (currentUserId: string, otherUserId: string, otherUserName: string, otherUserEmail: string) => {
-  const chatsRef = collection(db, 'chats');
-  const q = query(
-    chatsRef, 
-    where('participantIds', 'array-contains', currentUserId)
-  );
-  
-  const querySnapshot = await getDocs(q);
-  
-  let existingChat: Chat | null = null;
-  
-  querySnapshot.forEach((doc) => {
-    const chatData = doc.data();
-    if (chatData.participantIds.includes(otherUserId)) {
-      existingChat = { id: doc.id, ...chatData } as Chat;
+export const getOrCreateChat = async (
+  currentUserId: string, 
+  otherUserId: string, 
+  otherUserName: string, 
+  otherUserEmail: string,
+  currentUserName: string,
+  itemId?: string, 
+  itemTitle?: string 
+) => {
+  if (itemId) {
+    const chatsRef = collection(db, 'chats');
+    const q = query(
+      chatsRef, 
+      where('participantIds', 'array-contains', currentUserId),
+      where('itemId', '==', itemId)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    
+    let existingChat: Chat | null = null;
+    
+    querySnapshot.forEach((doc) => {
+      const chatData = doc.data();
+      if (chatData.participantIds.includes(otherUserId)) {
+        existingChat = { id: doc.id, ...chatData } as Chat;
+      }
+    });
+    
+    if (existingChat) {
+      return existingChat;
     }
-  });
-  
-  if (existingChat) {
-    return existingChat;
+  } else {
+    const chatsRef = collection(db, 'chats');
+    const q = query(
+      chatsRef, 
+      where('participantIds', 'array-contains', currentUserId)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    
+    let existingChat: Chat | null = null;
+    
+    querySnapshot.forEach((doc) => {
+      const chatData = doc.data();
+      if (chatData.participantIds.includes(otherUserId) && !chatData.itemId) {
+        existingChat = { id: doc.id, ...chatData } as Chat;
+      }
+    });
+    
+    if (existingChat) {
+      return existingChat;
+    }
   }
   
   const newChat = {
@@ -61,39 +100,67 @@ export const getOrCreateChat = async (currentUserId: string, otherUserId: string
     participants: [
       {
         userId: currentUserId,
-        name: 'Tú', // Esto se puede mejorar obteniendo el nombre real
-        email: '' // Se puede obtener del auth
+        name: currentUserName,
+        email: '', 
+        username: currentUserName
       },
       {
         userId: otherUserId,
         name: otherUserName,
-        email: otherUserEmail
+        email: otherUserEmail,
+        username: otherUserName
       }
     ],
+    itemId: itemId || null,
+    itemTitle: itemTitle || null,
     createdAt: serverTimestamp()
   };
-  
+  console.log('Nuevo chat creado:', newChat);
   const docRef = await addDoc(collection(db, 'chats'), newChat);
   return { id: docRef.id, ...newChat } as Chat;
 };
 
-export const sendMessage = async (chatId: string, text: string, senderId: string, senderName: string) => {
+export const sendMessage = async (
+  chatId: string, 
+  text: string, 
+  senderId: string, 
+  senderName: string,
+  type: 'text' | 'offer' = 'text', 
+  offerAmount?: number 
+) => {
   const messagesRef = collection(db, 'chats', chatId, 'messages');
   
-  const messageData = {
+  const messageData: any = {
     text,
     senderId,
     senderName,
     timestamp: serverTimestamp(),
-    read: false
+    read: false,
+    type 
   };
+
+  if (type === 'offer' && offerAmount) {
+    messageData.offerAmount = offerAmount;
+    messageData.offerStatus = 'pending';
+  }
   
   await addDoc(messagesRef, messageData);
   
   const chatRef = doc(db, 'chats', chatId);
   await updateDoc(chatRef, {
-    lastMessage: text,
+    lastMessage: type === 'offer' ? `Oferta: Bs ${offerAmount}` : text,
     lastMessageTime: serverTimestamp()
+  });
+};
+
+export const updateOfferStatus = async (
+  chatId: string, 
+  messageId: string, 
+  status: 'accepted' | 'rejected'
+) => {
+  const messageRef = doc(db, 'chats', chatId, 'messages', messageId);
+  await updateDoc(messageRef, {
+    offerStatus: status
   });
 };
 

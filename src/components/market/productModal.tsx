@@ -1,4 +1,4 @@
-import React, { FC, useMemo, useState } from 'react';
+import React, { FC, useMemo, useState, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -11,19 +11,31 @@ import {
   Dimensions,
   Platform,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { ThemeColors } from '../../theme/colors';
+import { router } from 'expo-router';
+import { useAuth } from '../../../app/context/AuthContext';
+import { useChat } from '../../../app/context/ChatContext';
+import { getUserDoc } from '../../services/userService';
+import { getDownloadURL, ref as storageRef } from 'firebase/storage';
+import { storage, db } from '../../../app/config/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { Ionicons } from '@expo/vector-icons';
+
 
 export interface Product {
   id: string;
   title: string;
   price?: number;
-  image: string;
+  image?: string;
+  images?: any;
   description?: string;
   condition: 'Disponible' | 'No Disponible';
   category?: string;
-  alias: string;
+  alias?: string | null;
+  ownerId?: string | null;
 }
 
 interface ProductModalProps {
@@ -38,18 +50,193 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const ProductModal: FC<ProductModalProps> = ({ visible, product, onClose, TradeNow }) => {
   const { colors } = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
-
   const [isFavorite, setIsFavorite] = useState(false);
+  const { user } = useAuth();
+  const { startChat } = useChat();
+  const [isContacting, setIsContacting] = useState(false);
+  const [ownerName, setOwnerName] = useState<string | null>(product?.alias ?? null);
+  const [ownerAvatar, setOwnerAvatar] = useState<string | null>(null);
+  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [loadingImage, setLoadingImage] = useState(false);
+  const [loadingOwner, setLoadingOwner] = useState(false);
+
+  useEffect(() => {
+    if (!product) return;
+    let mounted = true;
+    (async () => {
+      if (product.ownerId) {
+        try {
+          setLoadingOwner(true);
+          const userDoc = await getUserDoc(product.ownerId);
+          if (!mounted) return;
+          const name = (userDoc && (userDoc.username || userDoc.displayName)) ?? product.alias ?? 'Usuario';
+          setOwnerName(name);
+          const avatar =
+            (userDoc &&
+              (userDoc.photoUrl || userDoc.photoURL || userDoc.avatarUrl || userDoc.profileImage || userDoc.image || userDoc.picture)) ??
+            null;
+          setOwnerAvatar(avatar);
+        } catch {
+          if (mounted) {
+            setOwnerName(product.alias ?? 'Usuario');
+            setOwnerAvatar(null);
+          }
+        } finally {
+          if (mounted) setLoadingOwner(false);
+        }
+      } else {
+        setOwnerName(product.alias ?? 'Usuario');
+        setOwnerAvatar(null);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [product?.ownerId, product?.alias]);
+
+  const extractCandidateFromImages = (imagesField: any): string | null => {
+    if (!imagesField) return null;
+    if (typeof imagesField === 'string') return imagesField;
+    if (Array.isArray(imagesField)) {
+      if (imagesField.length === 0) return null;
+      const first = imagesField[0];
+      if (typeof first === 'string') return first;
+      if (first && typeof first === 'object') {
+        return first.thumbnail ?? first.original ?? null;
+      }
+      return null;
+    }
+    if (typeof imagesField === 'object') {
+      return imagesField.thumbnail ?? imagesField.original ?? null;
+    }
+    return null;
+  };
+
+  useEffect(() => {
+    if (!product) {
+      setImageUri(null);
+      return;
+    }
+    let mounted = true;
+    (async () => {
+      setLoadingImage(true);
+      try {
+        let imgCandidate: string | null = null;
+        if (product.image) imgCandidate = product.image;
+        if (!imgCandidate) {
+          const fromImages = extractCandidateFromImages(product.images);
+          if (fromImages) imgCandidate = fromImages;
+        }
+        if (!imgCandidate && product.id) {
+          try {
+            const docRef = doc(db, 'products', product.id);
+            const snap = await getDoc(docRef);
+            if (snap.exists()) {
+              const data: any = snap.data();
+              if (data.image) imgCandidate = data.image;
+              if (!imgCandidate) {
+                const fromImages = extractCandidateFromImages(data.images);
+                if (fromImages) imgCandidate = fromImages;
+              }
+            }
+          } catch (err) {
+            console.warn('Error leyendo producto desde Firestore en modal:', err);
+          }
+        }
+        if (!imgCandidate) {
+          if (mounted) setImageUri(null);
+          return;
+        }
+        if (imgCandidate.startsWith('http://') || imgCandidate.startsWith('https://')) {
+          if (mounted) setImageUri(imgCandidate);
+        } else {
+          try {
+            const url = await getDownloadURL(storageRef(storage, imgCandidate));
+            if (mounted) setImageUri(url);
+          } catch (err) {
+            console.warn('getDownloadURL fallo en modal, fallback al valor original:', err);
+            if (mounted) setImageUri(imgCandidate);
+          }
+        }
+      } catch (err) {
+        console.warn('Error resolviendo imagen en modal:', err);
+        if (mounted) setImageUri(product.image ?? null);
+      } finally {
+        if (mounted) setLoadingImage(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [product?.id, product?.image, product?.images]);
 
   if (!product) return null;
 
   const isAvailable = product.condition === 'Disponible';
 
-  const handleContact = () => {
-    Alert.alert('Contactar vendedor', `¿Deseas contactar a @${product.alias}?`, [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Contactar', onPress: () => console.log('Contactar a:', product.alias) },
-    ]);
+  const handleContact = async () => {
+    if (!user) {
+      Alert.alert('Iniciar sesión', 'Debes iniciar sesión para contactar al vendedor', [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Iniciar sesión',
+          onPress: () => {
+            onClose();
+            router.push('/login');
+          },
+        },
+      ]);
+      return;
+    }
+
+    if (product.ownerId === user.uid) {
+      Alert.alert('Acción no permitida', 'No puedes contactarte contigo mismo');
+      return;
+    }
+
+    setIsContacting(true);
+
+    try {
+      let sellerUser = null;
+
+      if (product.ownerId) {
+        sellerUser = await getUserDoc(product.ownerId);
+      }
+
+      if (!sellerUser) {
+        Alert.alert('Error', 'No se pudo encontrar la información del vendedor');
+        return;
+      }
+
+      Alert.alert('Contactar vendedor', `¿Deseas contactar a @${sellerUser.username ?? ownerName ?? 'vendedor'} sobre "${product.title}"?`, [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Contactar',
+          onPress: async () => {
+            try {
+              await startChat(
+                product.ownerId ?? sellerUser.uid,
+                sellerUser.username ?? ownerName ?? '',
+                sellerUser.email ?? '',
+                product.id,
+                product.title
+              );
+              onClose();
+              router.push(`/chat/${product.ownerId}`);
+              Alert.alert('Chat iniciado', `Ahora puedes chatear con @${sellerUser.username ?? ownerName}`, [{ text: 'OK' }]);
+            } catch (error) {
+              console.error('Error starting chat:', error);
+              Alert.alert('Error', 'No se pudo iniciar el chat. Intenta nuevamente.');
+            }
+          },
+        },
+      ]);
+    } catch (error) {
+      console.error('Error contacting seller:', error);
+      Alert.alert('Error', 'No se pudo contactar al vendedor');
+    } finally {
+      setIsContacting(false);
+    }
   };
 
   const handleFavorite = () => {
@@ -78,17 +265,26 @@ const ProductModal: FC<ProductModalProps> = ({ visible, product, onClose, TradeN
             <View style={styles.dragIndicator} />
             <View style={styles.headerActions}>
               <TouchableOpacity onPress={handleFavorite} style={styles.iconButton} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Text style={styles.iconText}>{isFavorite ? '❤️' : '🤍'}</Text>
+                <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={22} color={isFavorite ? '#ef4444' : colors.text} />
               </TouchableOpacity>
               <TouchableOpacity onPress={onClose} style={styles.closeButton} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Text style={styles.closeText}>✕</Text>
+                <Ionicons name="close" size={22} color={colors.text} />
+
               </TouchableOpacity>
             </View>
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false} bounces contentContainerStyle={styles.scrollContent}>
             <View style={styles.imageWrapper}>
-              <Image source={{ uri: product.image }} style={styles.image} resizeMode="cover" />
+              {loadingImage ? (
+                <View style={styles.image}>
+                  <ActivityIndicator />
+                </View>
+              ) : imageUri ? (
+                <Image source={{ uri: imageUri }} style={styles.image} resizeMode="cover" />
+              ) : (
+                <View style={[styles.image, { backgroundColor: '#f3f4f6' }]} />
+              )}
 
               <View style={[styles.statusBadge, isAvailable ? styles.availableBadge : styles.unavailableBadge]}>
                 <View style={[styles.statusDot, isAvailable ? styles.availableDot : styles.unavailableDot]} />
@@ -123,26 +319,40 @@ const ProductModal: FC<ProductModalProps> = ({ visible, product, onClose, TradeN
             <View style={styles.divider} />
 
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>📝 Descripción</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="document-text-outline" size={20} color={colors.text} />
+                <Text style={styles.sectionLabel}>Descripción</Text>
+              </View>
               <Text style={styles.text}>{product.description || 'Sin descripción disponible.'}</Text>
             </View>
 
             <View style={styles.divider} />
 
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>👤 Vendedor</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Ionicons name="person-outline" size={20} color={colors.text} />
+                  <Text style={styles.sectionLabel}>Vendedor</Text>
+              </View>
               <View style={styles.sellerCard}>
                 <View style={styles.sellerInfo}>
-                  <View style={styles.sellerAvatar}>
-                    <Text style={styles.sellerInitial}>{(product.alias || 'U')[0].toUpperCase()}</Text>
-                  </View>
+                  {loadingOwner ? (
+                    <View style={styles.sellerAvatar}>
+                      <ActivityIndicator />
+                    </View>
+                  ) : ownerAvatar ? (
+                    <Image source={{ uri: ownerAvatar }} style={styles.sellerAvatar} />
+                  ) : (
+                    <View style={styles.sellerAvatar}>
+                      <Text style={styles.sellerInitial}>{(ownerName || product.alias || 'U')[0].toUpperCase()}</Text>
+                    </View>
+                  )}
                   <View style={styles.sellerDetails}>
-                    <Text style={styles.sellerName}>@{product.alias || 'Usuario no disponible'}</Text>
+                    <Text style={styles.sellerName}>@{ownerName || product.alias || 'Usuario no disponible'}</Text>
                     <Text style={styles.sellerMeta}>Miembro verificado</Text>
                   </View>
                 </View>
-                <TouchableOpacity style={styles.contactButton} onPress={handleContact}>
-                  <Text style={styles.contactButtonText}>Contactar</Text>
+                <TouchableOpacity style={[styles.contactButton, isContacting && styles.contactButtonDisabled]} onPress={handleContact}>
+                  {isContacting ? <ActivityIndicator color="white" size="small" /> : <Text style={styles.contactButtonText}>Contactar</Text>}
                 </TouchableOpacity>
               </View>
             </View>
@@ -150,25 +360,29 @@ const ProductModal: FC<ProductModalProps> = ({ visible, product, onClose, TradeN
             <View style={styles.divider} />
 
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>⚙️ Opciones</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="settings-outline" size={20} color={colors.text} />
+                <Text style={styles.sectionLabel}>Opciones</Text>
+              </View>
               <View style={styles.actionsGrid}>
                 <TouchableOpacity style={styles.actionCard} onPress={handleFavorite}>
                   <View style={styles.actionIcon}>
-                    <Text style={styles.actionEmoji}>{isFavorite ? '❤️' : '🤍'}</Text>
+                    <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={22} color={isFavorite ? '#ef4444' : colors.text} />
+
                   </View>
                   <Text style={styles.actionText}>{isFavorite ? 'En Favoritos' : 'Agregar a Favoritos'}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.actionCard} onPress={() => Alert.alert('Compartir', 'Funcionalidad de compartir próximamente')}>
                   <View style={styles.actionIcon}>
-                    <Text style={styles.actionEmoji}>📤</Text>
+                    <Ionicons name="share-outline" size={24} color={colors.text} />
                   </View>
                   <Text style={styles.actionText}>Compartir</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={[styles.actionCard, styles.reportCard]} onPress={handleReport}>
                   <View style={styles.actionIcon}>
-                    <Text style={styles.actionEmoji}>⚠️</Text>
+                    <Ionicons name="alert-circle-outline" size={24} color="#ef4444" />
                   </View>
                   <Text style={[styles.actionText, styles.reportText]}>Reportar</Text>
                 </TouchableOpacity>
@@ -181,7 +395,10 @@ const ProductModal: FC<ProductModalProps> = ({ visible, product, onClose, TradeN
           {isAvailable && (
             <View style={styles.footer}>
               <TouchableOpacity style={styles.tradeButton} onPress={() => TradeNow(product)} activeOpacity={0.8}>
-                <Text style={styles.tradeButtonText}>🔄 Intercambiar Ahora</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Ionicons name="swap-horizontal-outline" size={20} color="white" />
+                  <Text style={styles.tradeButtonText}>Intercambiar Ahora</Text>
+                </View>
               </TouchableOpacity>
             </View>
           )}
@@ -299,28 +516,15 @@ const createStyles = (colors: ThemeColors | any) => {
     unavailableBadge: {
       backgroundColor: 'rgba(239, 68, 68, 0.95)',
     },
-    statusDot: {
-      width: 6,
-      height: 6,
-      borderRadius: 3,
-    },
-    availableDot: {
-      backgroundColor: '#fff',
-    },
-    unavailableDot: {
-      backgroundColor: '#fff',
-    },
-    statusBadgeText: {
-      color: '#fff',
-      fontSize: 13,
-      fontWeight: '700',
-      letterSpacing: 0.2,
-    },
+    statusDot: { width: 6, height: 6, borderRadius: 3 },
+    availableDot: { backgroundColor: '#fff' },
+    unavailableDot: { backgroundColor: '#fff' },
+    statusBadgeText: { color: '#fff', fontSize: 12, fontWeight: '700', letterSpacing: 0.2 },
     categoryBadgeModal: {
       position: 'absolute',
       top: 16,
       right: 16,
-      backgroundColor: 'rgba(0, 0, 0, 0.75)',
+      backgroundColor: 'rgba(0,0,0,0.7)',
       paddingHorizontal: 12,
       paddingVertical: 8,
       borderRadius: 10,
@@ -455,6 +659,9 @@ const createStyles = (colors: ThemeColors | any) => {
       color: 'white',
       fontWeight: '700',
       fontSize: 15,
+    },
+    contactButtonDisabled: {
+      backgroundColor: '#9ca3af',
     },
     actionsGrid: {
       flexDirection: 'row',

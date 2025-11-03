@@ -18,14 +18,14 @@ import ProductList from "../../../src/components/market/ProductList";
 import { useThemeColors } from "../../../src/hooks/useThemeColors";
 import { ThemeColors } from "../../../src/theme/colors";
 import { fetchApprovedProducts } from "../../../src/services/productService";
-import { useMarketStore, ProductItem } from "../../../src/store/useMarketStore";
+import { useMarketStore } from "../../../src/store/useMarketStore";
+import { Ionicons } from '@expo/vector-icons';
 
 const MarketScreen: React.FC = () => {
   const { colors } = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const { searchQuery, setSearchQuery, selectedCategory, setSelectedCategory } = useMarketStore();
-  const setMarketProducts = useMarketStore((s) => s.setProducts);
 
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -39,7 +39,6 @@ const MarketScreen: React.FC = () => {
     try {
       const list = await fetchApprovedProducts();
       setProducts(list || []);
-      setMarketProducts((list || []) as ProductItem[]);
     } catch (e) {
       console.log("Error loading products:", e);
     } finally {
@@ -56,7 +55,6 @@ const MarketScreen: React.FC = () => {
     try {
       const list = await fetchApprovedProducts();
       setProducts(list || []);
-      setMarketProducts((list || []) as ProductItem[]);
     } catch (e) {
       console.log("Error refreshing products:", e);
     } finally {
@@ -64,7 +62,7 @@ const MarketScreen: React.FC = () => {
     }
   };
 
-  const headerOpacity = scrollY.interpolate({
+  const headerOpacity = (scrollY as any).interpolate({
     inputRange: [0, 50],
     outputRange: [1, 0.95],
     extrapolate: "clamp",
@@ -117,7 +115,7 @@ const MarketScreen: React.FC = () => {
         <View style={styles.searchContainer}>
           <View style={styles.searchWrapper}>
             <View style={styles.searchIconContainer}>
-              <Text style={styles.searchIcon}>🔍</Text>
+              <Ionicons name="search-outline" size={22} color={colors.subtitle || '#6c757d'} />
             </View>
             <TextInput
               style={styles.searchInput}
@@ -129,7 +127,7 @@ const MarketScreen: React.FC = () => {
             />
             {searchQuery?.length > 0 && (
               <TouchableOpacity style={styles.clearButton} onPress={clearSearch} activeOpacity={0.7}>
-                <Text style={styles.clearIcon}>✕</Text>
+                <Ionicons name="close-outline" size={22} color={colors.subtitle || '#6c757d'} />
               </TouchableOpacity>
             )}
           </View>
@@ -165,7 +163,7 @@ const MarketScreen: React.FC = () => {
                     <Text style={styles.sectionTitle}>Productos Destacados</Text>
                   </View>
                 </View>
-                <ProductList products={filteredProducts} refreshing={refreshing} onRefresh={onRefresh} />
+                <ProductList products={filteredProducts} />
               </View>
             );
           }}
