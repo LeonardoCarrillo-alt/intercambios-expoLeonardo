@@ -56,7 +56,7 @@ const MyPostsScreen: React.FC = () => {
 
   const handleUpdate = async (id: string, data: any) => {
     await updateProduct(id, data);
-    loadProducts();
+    loadProducts(); // Recargar la lista
   };
 
   return (

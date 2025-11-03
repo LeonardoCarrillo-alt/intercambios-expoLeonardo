@@ -17,7 +17,19 @@ import { db, storage } from "../../app/config/firebase";
 
 export const createProduct = async (payload: any, ownerId: string) => {
   const colRef = collection(db, "products");
-  const data = { ...payload, ownerId, status: "pending", createdAt: serverTimestamp() };
+  const data = { 
+    ...payload, 
+    ownerId, 
+    status: "pending", 
+    createdAt: serverTimestamp(),
+    // Asegurar que location tenga el formato correcto
+    location: payload.location ? {
+      latitude: Number(payload.location.latitude),
+      longitude: Number(payload.location.longitude),
+      address: payload.location.address || '',
+      meetingPoint: payload.location.meetingPoint || ''
+    } : null
+  };
   const refDoc = await addDoc(colRef, data);
   return refDoc.id;
 };
@@ -96,4 +108,29 @@ export const getProductSeller = async (productId: string) => {
     username: 'seller_username',
     email: 'seller@example.com'
   };
+};
+export const getProductById = async (productId: string) => {
+  try {
+    const docRef = doc(db, "products", productId);
+    const docSnap = await getDoc(docRef);
+    
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      return { 
+        id: docSnap.id, 
+        ...data,
+        // Asegurar que location tenga el formato correcto
+        location: data.location ? {
+          latitude: Number(data.location.latitude),
+          longitude: Number(data.location.longitude),
+          address: data.location.address || '',
+          meetingPoint: data.location.meetingPoint || ''
+        } : null
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Error getting product by ID:', error);
+    throw error;
+  }
 };

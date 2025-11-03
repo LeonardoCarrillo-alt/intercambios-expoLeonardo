@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from "react";
-import { Stack } from "expo-router";
+import React, { useEffect, useMemo, useState } from "react";
+import { Stack, useLocalSearchParams, router } from "expo-router";
 import {
   StyleSheet,
   Text,
@@ -15,13 +15,12 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Picker } from "@react-native-picker/picker";
-import { useThemeColors } from "../../../../src/hooks/useThemeColors";
-import type { ThemeColors } from "../../../../src/theme/colors";
-import { useAuth } from "../../../context/AuthContext";
-import { uploadToCloudinary } from "../../../../src/services/cloudinary";
-import { createProduct } from "../../../../src/services/productService";
-// NUEVO: Importar LocationPicker
-import LocationPicker from "../../../../src/components/location/LocationPicker";
+import { useThemeColors } from "../../../../../src/hooks/useThemeColors";
+import type { ThemeColors } from "../../../../../src/theme/colors";
+import { useAuth } from "../../../../context/AuthContext";
+import { uploadToCloudinary } from "../../../../../src/services/cloudinary";
+import { updateProduct, getProductById } from "../../../../../src/services/productService";
+import LocationPicker from "../../../../../src/components/location/LocationPicker";
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
@@ -63,11 +62,14 @@ const createStyles = (colors: ThemeColors) =>
   });
 
 const categories = ["Electrónica", "Ropa", "Libros", "Hogar", "Deportes", "Otros"];
+const conditions = ["Nuevo", "Como nuevo", "Usado"];
+const types = ["Venta", "Intercambio"];
 
-const PublishScreen: React.FC = () => {
+export default function EditProductScreen() {
   const { colors } = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { user } = useAuth();
+  const { id } = useLocalSearchParams();
 
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState(categories[0]);
@@ -77,10 +79,41 @@ const PublishScreen: React.FC = () => {
   const [price, setPrice] = useState<string>("");
   const [description, setDescription] = useState("");
   const [imageUri, setImageUri] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  // NUEVO: Estado para ubicación
+  const [currentImage, setCurrentImage] = useState<string | null>(null);
   const [location, setLocation] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [loadingProduct, setLoadingProduct] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadProduct();
+  }, [id]);
+
+  const loadProduct = async () => {
+    try {
+      const product = await getProductById(id as string);
+      if (product) {
+        setTitle(product.title || "");
+        setCategory(product.category || categories[0]);
+        setType(product.type || "Venta");
+        setCondition(product.condition || "Usado");
+        setCareer(product.career || "");
+        setPrice(product.price?.toString() || "");
+        setDescription(product.description || "");
+        setCurrentImage(product.images?.original || null);
+        setLocation(product.location || null);
+      } else {
+        Alert.alert('Error', 'Producto no encontrado');
+        router.back();
+      }
+    } catch (error) {
+      console.error('Error loading product:', error);
+      Alert.alert('Error', 'No se pudo cargar el producto');
+      router.back();
+    } finally {
+      setLoadingProduct(false);
+    }
+  };
 
   const pickImage = async () => {
     const res = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -101,7 +134,6 @@ const PublishScreen: React.FC = () => {
   };
 
   const validate = () => {
-    if (!imageUri) return setError("Imagen obligatoria"), false;
     if (!title.trim()) return setError("Título obligatorio"), false;
     if (!category.trim()) return setError("Selecciona una categoría"), false;
     if (!career.trim()) return setError("Indica la carrera"), false;
@@ -112,18 +144,15 @@ const PublishScreen: React.FC = () => {
   const handleSubmit = async () => {
     setError(null);
     if (!validate()) return;
-    if (!user) return Alert.alert("No autenticado", "Inicia sesión para publicar");
-    
+    if (!user) return Alert.alert("No autenticado", "Inicia sesión para editar");
     setLoading(true);
-    
     try {
-      // PRIMERO: Subir la imagen a Cloudinary
-      console.log('Subiendo imagen a Cloudinary...');
-      const uploadResult = await uploadToCloudinary(imageUri!, { width: 400 });
-      console.log('Imagen subida exitosamente:', uploadResult.secure_url);
+      let imageData = null;
+      if (imageUri) {
+        imageData = await uploadToCloudinary(imageUri!, { width: 400 });
+      }
 
-      // LUEGO: Crear el payload con la respuesta de Cloudinary
-      const payload = {
+      const payload: any = {
         title: title.trim(),
         category: category.trim(),
         type,
@@ -131,11 +160,6 @@ const PublishScreen: React.FC = () => {
         career: career.trim(),
         price: type === "Venta" ? (isNaN(Number(price)) ? 0 : Number(price)) : null,
         description: description.trim() || null,
-        images: { 
-          original: uploadResult.secure_url, 
-          thumb: uploadResult.thumb_url || uploadResult.secure_url 
-        },
-        // NUEVO: Agregar ubicación
         location: location ? {
           latitude: location.latitude,
           longitude: location.longitude,
@@ -144,44 +168,49 @@ const PublishScreen: React.FC = () => {
         } : null
       };
 
-      console.log('Creando producto con payload:', payload);
+      if (imageData) {
+        payload.images = { 
+          original: imageData.secure_url, 
+          thumb: imageData.thumb_url || imageData.secure_url 
+        };
+      }
 
-      // FINALMENTE: Crear el producto
-      const productId = await createProduct(payload, user.uid);
-      console.log('Producto creado con ID:', productId);
-      
-      // Limpiar formulario
-      setTitle("");
-      setCategory(categories[0]);
-      setType("Venta");
-      setCondition("Usado");
-      setCareer("");
-      setPrice("");
-      setDescription("");
-      setImageUri(null);
-      setLocation(null); // Limpiar ubicación también
-      
-      Alert.alert("Éxito", "Espera hasta que un administrador decida si aprobar tu publicación");
+      await updateProduct(id as string, payload);
+      Alert.alert("Éxito", "Producto actualizado correctamente");
+      router.back();
     } catch (e: any) {
-      console.error('Error completo al publicar:', e);
-      Alert.alert("Error", e.message || "Error al publicar");
+      Alert.alert("Error", e.message || "Error al actualizar el producto");
     } finally {
       setLoading(false);
     }
   };
 
+  if (loadingProduct) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{ marginTop: 10, color: colors.text }}>Cargando producto...</Text>
+      </View>
+    );
+  }
+
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.background }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <View style={styles.container}>
-        <Stack.Screen options={{ title: "Publicar" }} />
+        <Stack.Screen options={{ title: "Editar Producto" }} />
         <ScrollView showsVerticalScrollIndicator={false}>
-          <Text style={styles.headerTitle}>Nueva publicación</Text>
+          <Text style={styles.headerTitle}>Editar publicación</Text>
 
           <Text style={styles.label}>Imagen / Cover</Text>
-          {imageUri && <Image source={{ uri: imageUri }} style={styles.imagePreview} />}
+          {(imageUri || currentImage) && (
+            <Image 
+              source={{ uri: imageUri || currentImage! }} 
+              style={styles.imagePreview} 
+            />
+          )}
           <View style={{ flexDirection: "row", gap: 8 }}>
             <TouchableOpacity style={styles.pickButton} onPress={pickImage}>
-              <Text style={{ color: "#10b981", fontWeight: "700" }}>Elegir imagen</Text>
+              <Text style={{ color: "#10b981", fontWeight: "700" }}>Cambiar imagen</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.pickButton} onPress={takePhoto}>
               <Text style={{ color: "#10b981", fontWeight: "700" }}>Tomar foto</Text>
@@ -212,40 +241,44 @@ const PublishScreen: React.FC = () => {
 
           <Text style={styles.label}>Tipo</Text>
           <View style={styles.row}>
-            <TouchableOpacity
-              onPress={() => setType("Venta")}
-              style={[styles.smallInput, { backgroundColor: type === "Venta" ? "#10b981" : colors.surface }]}
-            >
-              <Text style={{ color: type === "Venta" ? "white" : colors.text, fontWeight: '600', textAlign: 'center' }}>Venta</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setType("Intercambio")}
-              style={[styles.smallInput, { backgroundColor: type === "Intercambio" ? "#10b981" : colors.surface }]}
-            >
-              <Text style={{ color: type === "Intercambio" ? "white" : colors.text, fontWeight: '600', textAlign: 'center' }}>Intercambio</Text>
-            </TouchableOpacity>
+            {types.map((tipo) => (
+              <TouchableOpacity
+                key={tipo}
+                onPress={() => setType(tipo as "Venta" | "Intercambio")}
+                style={[styles.smallInput, { 
+                  backgroundColor: type === tipo ? "#10b981" : colors.surface 
+                }]}
+              >
+                <Text style={{ 
+                  color: type === tipo ? "white" : colors.text,
+                  fontWeight: '600',
+                  textAlign: 'center'
+                }}>
+                  {tipo}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
 
           <Text style={styles.label}>Estado</Text>
           <View style={styles.row}>
-            <TouchableOpacity 
-              onPress={() => setCondition("Nuevo")} 
-              style={[styles.smallInput, { backgroundColor: condition === "Nuevo" ? "#10b981" : colors.surface }]}
-            >
-              <Text style={{ color: condition === "Nuevo" ? "white" : colors.text, fontWeight: '600', textAlign: 'center' }}>Nuevo</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              onPress={() => setCondition("Como nuevo")} 
-              style={[styles.smallInput, { backgroundColor: condition === "Como nuevo" ? "#10b981" : colors.surface }]}
-            >
-              <Text style={{ color: condition === "Como nuevo" ? "white" : colors.text, fontWeight: '600', textAlign: 'center' }}>Como nuevo</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              onPress={() => setCondition("Usado")} 
-              style={[styles.smallInput, { backgroundColor: condition === "Usado" ? "#10b981" : colors.surface }]}
-            >
-              <Text style={{ color: condition === "Usado" ? "white" : colors.text, fontWeight: '600', textAlign: 'center' }}>Usado</Text>
-            </TouchableOpacity>
+            {conditions.map((cond) => (
+              <TouchableOpacity 
+                key={cond}
+                onPress={() => setCondition(cond as "Nuevo" | "Como nuevo" | "Usado")} 
+                style={[styles.smallInput, { 
+                  backgroundColor: condition === cond ? "#10b981" : colors.surface 
+                }]}
+              >
+                <Text style={{ 
+                  color: condition === cond ? "white" : colors.text,
+                  fontWeight: '600',
+                  textAlign: 'center'
+                }}>
+                  {cond}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
 
           <Text style={styles.label}>Carrera</Text>
@@ -281,7 +314,7 @@ const PublishScreen: React.FC = () => {
             multiline
           />
 
-          {/* NUEVO: Selector de ubicación */}
+          {/* Selector de ubicación */}
           <LocationPicker
             value={location}
             onChange={setLocation}
@@ -290,18 +323,12 @@ const PublishScreen: React.FC = () => {
           {error && <Text style={styles.errorText}>{error}</Text>}
 
           <TouchableOpacity style={styles.button} onPress={handleSubmit} disabled={loading}>
-            {loading ? <ActivityIndicator color="white" /> : <Text style={styles.buttonText}>Publicar (pendiente)</Text>}
+            {loading ? <ActivityIndicator color="white" /> : <Text style={styles.buttonText}>Actualizar Producto</Text>}
           </TouchableOpacity>
-
-          <Text style={styles.hint}>
-            Tu publicación quedará en estado "pending" hasta que un administrador la apruebe.
-          </Text>
 
           <View style={{ height: 40 }} />
         </ScrollView>
       </View>
     </KeyboardAvoidingView>
   );
-};
-
-export default PublishScreen;
+}

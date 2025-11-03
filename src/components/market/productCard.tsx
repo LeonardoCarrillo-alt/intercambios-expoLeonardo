@@ -9,12 +9,16 @@ import {
   TextInput,
   Button,
   ActivityIndicator,
+  Alert,
+  TouchableOpacity,
 } from 'react-native';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { ThemeColors } from '../../theme/colors';
 import { getUserDoc } from '../../services/userService';
 import { getDownloadURL, ref as storageRef } from 'firebase/storage';
 import { storage } from '../../../app/config/firebase';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 
 export interface Product {
   id: string;
@@ -27,6 +31,13 @@ export interface Product {
   alias?: string | null;
   status?: 'pending' | 'approved' | 'rejected' | 'sold';
   ownerId?: string | null;
+  // NUEVO: Campos de ubicación
+  location?: {
+    latitude: number;
+    longitude: number;
+    address?: string;
+    meetingPoint?: string;
+  };
 }
 
 interface ProductCardProps {
@@ -50,6 +61,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(product.title);
   const [price, setPrice] = useState(product.price?.toString() ?? '');
+  const [description, setDescription] = useState(product.description ?? '');
   const [ownerName, setOwnerName] = useState<string | null>(product.alias ?? null);
   const [ownerAvatar, setOwnerAvatar] = useState<string | null>(null);
   const [imageUri, setImageUri] = useState<string | null>(product.image ?? null);
@@ -57,8 +69,52 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const [loadingOwner, setLoadingOwner] = useState(false);
 
   const handleSave = () => {
-    onUpdate?.({ title, price: Number(price) });
+    if (!title.trim()) {
+      Alert.alert('Error', 'El título es obligatorio');
+      return;
+    }
+
+    const updateData: Partial<Product> = { 
+      title: title.trim(),
+      description: description.trim() || undefined
+    };
+
+    if (price.trim()) {
+      updateData.price = Number(price);
+    }
+
+    onUpdate?.(updateData);
     setEditing(false);
+  };
+
+  const handleCancel = () => {
+    setTitle(product.title);
+    setPrice(product.price?.toString() ?? '');
+    setDescription(product.description ?? '');
+    setEditing(false);
+  };
+
+  const handleViewOnMap = () => {
+    if (!product.location) {
+      Alert.alert('Ubicación no disponible', 'Este producto no tiene ubicación registrada');
+      return;
+    }
+
+    router.push({
+      pathname: '/routes',
+      params: {
+        productId: product.id,
+        productTitle: product.title,
+        destinationLat: product.location.latitude,
+        destinationLng: product.location.longitude,
+        meetingPoint: product.location.meetingPoint || 'Punto de encuentro'
+      }
+    });
+  };
+
+  const handleEditLocation = () => {
+    // Navegar a pantalla de edición completa
+    router.push(`/my-post/edit/${product.id}`);
   };
 
   useEffect(() => {
@@ -151,6 +207,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <Text style={styles.categoryText}>{product.category}</Text>
           </View>
         )}
+        
+        {/* NUEVO: Badge de ubicación */}
+        {product.location && (
+          <View style={styles.locationBadge}>
+            <Ionicons name="location" size={12} color="white" />
+            <Text style={styles.locationText}>Ubicación</Text>
+          </View>
+        )}
       </View>
 
       <View style={styles.body}>
@@ -160,22 +224,55 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <TextInput
               value={title}
               onChangeText={setTitle}
-              style={[styles.title, { borderWidth: 1, padding: 4, borderRadius: 6 }]}
+              style={[styles.input, { borderColor: colors.border }]}
+              placeholder="Título del producto"
             />
+            
             <Text style={styles.label}>Precio:</Text>
             <TextInput
               value={price}
               onChangeText={setPrice}
               keyboardType="numeric"
-              style={[styles.price, { borderWidth: 1, padding: 4, borderRadius: 6, fontSize: 16 }]}
+              style={[styles.input, { borderColor: colors.border }]}
+              placeholder="0.00"
             />
-            <Button title="Guardar" onPress={handleSave} />
+            
+            <Text style={styles.label}>Descripción:</Text>
+            <TextInput
+              value={description}
+              onChangeText={setDescription}
+              style={[styles.input, { borderColor: colors.border, height: 80, textAlignVertical: 'top' }]}
+              placeholder="Descripción del producto"
+              multiline
+            />
+
+            <View style={styles.editActions}>
+              <TouchableOpacity 
+                style={[styles.editButton, { backgroundColor: '#6b7280' }]}
+                onPress={handleCancel}
+              >
+                <Text style={styles.editButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.editButton, { backgroundColor: '#10b981' }]}
+                onPress={handleSave}
+              >
+                <Text style={styles.editButtonText}>Guardar</Text>
+              </TouchableOpacity>
+            </View>
           </>
         ) : (
           <>
             <Text numberOfLines={2} style={styles.title}>
               {product.title}
             </Text>
+            
+            {product.description && (
+              <Text numberOfLines={2} style={styles.description}>
+                {product.description}
+              </Text>
+            )}
+
             <View style={styles.footer}>
               <View style={styles.priceContainer}>
                 {product.price != null ? (
@@ -190,7 +287,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               <View style={styles.sellerContainer}>
                 {loadingOwner ? (
                   <View style={styles.sellerAvatar}>
-                    <ActivityIndicator />
+                    <ActivityIndicator size="small" />
                   </View>
                 ) : ownerAvatar ? (
                   <Image source={{ uri: ownerAvatar }} style={styles.sellerAvatarImage} />
@@ -206,15 +303,55 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 </Text>
               </View>
             </View>
-            {product.status && (
-              <View style={{ marginTop: 8 }}>
-                <Text style={{ fontSize: 12, color: '#6b7280', fontWeight: '700' }}>Estado: {product.status}</Text>
+
+            {/* NUEVO: Información de ubicación */}
+            {product.location && (
+              <View style={styles.locationInfo}>
+                <Ionicons name="location-outline" size={16} color={colors.muted} />
+                <Text style={[styles.locationAddress, { color: colors.muted }]} numberOfLines={1}>
+                  {product.location.meetingPoint || product.location.address || 'Ubicación disponible'}
+                </Text>
+                <TouchableOpacity onPress={handleViewOnMap} style={styles.mapButton}>
+                  <Text style={styles.mapButtonText}>Ver en mapa</Text>
+                </TouchableOpacity>
               </View>
             )}
+
+            {product.status && (
+              <View style={styles.statusContainer}>
+                <Text style={[styles.statusText, { color: colors.muted }]}>
+                  Estado: {product.status}
+                </Text>
+              </View>
+            )}
+
             {isProfileCard && (
-              <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-                <Button title="Editar" onPress={() => setEditing(true)} />
-                <Button title="Borrar" color="red" onPress={onDelete} />
+              <View style={styles.profileActions}>
+                <TouchableOpacity 
+                  style={[styles.profileButton, { backgroundColor: '#3b82f6' }]}
+                  onPress={() => setEditing(true)}
+                >
+                  <Ionicons name="pencil" size={16} color="white" />
+                  <Text style={styles.profileButtonText}>Editar</Text>
+                </TouchableOpacity>
+                
+                {product.location && (
+                  <TouchableOpacity 
+                    style={[styles.profileButton, { backgroundColor: '#10b981' }]}
+                    onPress={handleEditLocation}
+                  >
+                    <Ionicons name="map" size={16} color="white" />
+                    <Text style={styles.profileButtonText}>Ubicación</Text>
+                  </TouchableOpacity>
+                )}
+                
+                <TouchableOpacity 
+                  style={[styles.profileButton, { backgroundColor: '#ef4444' }]}
+                  onPress={onDelete}
+                >
+                  <Ionicons name="trash" size={16} color="white" />
+                  <Text style={styles.profileButtonText}>Eliminar</Text>
+                </TouchableOpacity>
               </View>
             )}
           </>
@@ -292,17 +429,68 @@ const createStyles = (colors: ThemeColors | any) =>
       paddingVertical: 6,
       borderRadius: 8,
     },
-    categoryText: { color: '#fff', fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
-    body: { padding: 16, gap: 12 },
+    categoryText: { 
+      color: '#fff', 
+      fontSize: 11, 
+      fontWeight: '600', 
+      textTransform: 'uppercase', 
+      letterSpacing: 0.5 
+    },
+    locationBadge: {
+      position: 'absolute',
+      bottom: 12,
+      left: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(59, 130, 246, 0.95)',
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 20,
+      gap: 4,
+    },
+    locationText: {
+      color: '#fff',
+      fontSize: 11,
+      fontWeight: '600',
+    },
+    body: { 
+      padding: 16, 
+      gap: 12 
+    },
     label: {
       fontSize: 14,
       fontWeight: '700',
       marginBottom: 4,
       color: (colors as any).text,
     },
-    title: { fontSize: 18, fontWeight: '700', lineHeight: 24, color: (colors as any).text, marginBottom: 4 },
-    footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', gap: 12 },
-    priceContainer: { flex: 1 },
+    input: {
+      borderWidth: 1,
+      padding: 8,
+      borderRadius: 6,
+      color: (colors as any).text,
+      backgroundColor: (colors as any).surface,
+    },
+    title: { 
+      fontSize: 18, 
+      fontWeight: '700', 
+      lineHeight: 24, 
+      color: (colors as any).text, 
+      marginBottom: 4 
+    },
+    description: {
+      fontSize: 14,
+      color: (colors as any).muted,
+      lineHeight: 20,
+    },
+    footer: { 
+      flexDirection: 'row', 
+      justifyContent: 'space-between', 
+      alignItems: 'flex-end', 
+      gap: 12 
+    },
+    priceContainer: { 
+      flex: 1 
+    },
     priceLabel: {
       fontSize: 11,
       fontWeight: '600',
@@ -311,8 +499,18 @@ const createStyles = (colors: ThemeColors | any) =>
       letterSpacing: 0.5,
       marginBottom: 2,
     },
-    price: { fontSize: 22, fontWeight: '800', color: (colors as any).primary || '#10b981', letterSpacing: -0.5 },
-    exchangeText: { fontSize: 16, fontWeight: '700', color: (colors as any).primary || '#10b981', paddingVertical: 4 },
+    price: { 
+      fontSize: 22, 
+      fontWeight: '800', 
+      color: (colors as any).primary || '#10b981', 
+      letterSpacing: -0.5 
+    },
+    exchangeText: { 
+      fontSize: 16, 
+      fontWeight: '700', 
+      color: (colors as any).primary || '#10b981', 
+      paddingVertical: 4 
+    },
     sellerContainer: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -326,10 +524,92 @@ const createStyles = (colors: ThemeColors | any) =>
       borderRadius: 20,
       maxWidth: '50%',
     },
-    sellerAvatar: { width: 28, height: 28, borderRadius: 14, backgroundColor: (colors as any).primary || '#10b981', alignItems: 'center', justifyContent: 'center' },
-    sellerAvatarImage: { width: 28, height: 28, borderRadius: 14 },
-    sellerInitial: { color: '#fff', fontSize: 13, fontWeight: '700' },
-    sellerName: { fontSize: 13, fontWeight: '600', color: (colors as any).text, flex: 1 },
+    sellerAvatar: { 
+      width: 28, 
+      height: 28, 
+      borderRadius: 14, 
+      backgroundColor: (colors as any).primary || '#10b981', 
+      alignItems: 'center', 
+      justifyContent: 'center' 
+    },
+    sellerAvatarImage: { 
+      width: 28, 
+      height: 28, 
+      borderRadius: 14 
+    },
+    sellerInitial: { 
+      color: '#fff', 
+      fontSize: 13, 
+      fontWeight: '700' 
+    },
+    sellerName: { 
+      fontSize: 13, 
+      fontWeight: '600', 
+      color: (colors as any).text, 
+      flex: 1 
+    },
+    locationInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      padding: 12,
+      backgroundColor: String((colors as any).background) === '#f8fafc' 
+        ? '#f3f4f6' 
+        : 'rgba(255,255,255,0.05)',
+      borderRadius: 8,
+    },
+    locationAddress: {
+      flex: 1,
+      fontSize: 13,
+    },
+    mapButton: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      backgroundColor: '#3b82f6',
+      borderRadius: 6,
+    },
+    mapButtonText: {
+      color: 'white',
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    statusContainer: {
+      marginTop: 8,
+    },
+    editActions: {
+      flexDirection: 'row',
+      gap: 8,
+      marginTop: 12,
+    },
+    editButton: {
+      flex: 1,
+      padding: 12,
+      borderRadius: 8,
+      alignItems: 'center',
+    },
+    editButtonText: {
+      color: 'white',
+      fontWeight: '600',
+    },
+    profileActions: {
+      flexDirection: 'row',
+      gap: 8,
+      marginTop: 12,
+    },
+    profileButton: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 10,
+      borderRadius: 8,
+      gap: 6,
+    },
+    profileButtonText: {
+      color: 'white',
+      fontSize: 12,
+      fontWeight: '600',
+    },
   });
 
 export default ProductCard;

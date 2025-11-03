@@ -62,7 +62,7 @@ export default function RoutesScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]}>
         <Text style={{ color: colors.text }}>Cargando ruta...</Text>
       </View>
     );
@@ -140,8 +140,6 @@ export default function RoutesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   map: {
     width,
