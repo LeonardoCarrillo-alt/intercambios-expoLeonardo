@@ -23,6 +23,7 @@ import { getDownloadURL, ref as storageRef } from 'firebase/storage';
 import { storage, db } from '../../../app/config/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
+import { LocationService } from '../../services/locationService';
 
 
 export interface Product {
@@ -252,6 +253,32 @@ const ProductModal: FC<ProductModalProps> = ({ visible, product, onClose, TradeN
       { text: 'Estafa', onPress: () => console.log('Reportado: Estafa') },
     ]);
   };
+  const handleOpenMap = async () => {
+    if (!product?.location) {
+      Alert.alert('Ubicación no disponible', 'Este producto no tiene ubicación registrada');
+      return;
+    }
+
+    try {
+      // Navegar a la pantalla de rutas con los parámetros
+      router.push({
+        pathname: '/routes',
+        params: {
+          productId: product.id,
+          productTitle: product.title,
+          destinationLat: product.location.latitude,
+          destinationLng: product.location.longitude,
+          meetingPoint: product.location.meetingPoint || 'Punto de encuentro'
+        }
+      });
+      
+      // Cerrar el modal
+      onClose();
+    } catch (error) {
+      console.error('Error opening map:', error);
+      Alert.alert('Error', 'No se pudo abrir el mapa');
+    }
+  };
 
   return (
     <Modal animationType="slide" transparent visible={visible} onRequestClose={onClose} statusBarTranslucent>
@@ -385,6 +412,12 @@ const ProductModal: FC<ProductModalProps> = ({ visible, product, onClose, TradeN
                     <Ionicons name="alert-circle-outline" size={24} color="#ef4444" />
                   </View>
                   <Text style={[styles.actionText, styles.reportText]}>Reportar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.actionCard} onPress={handleOpenMap}>
+                  <View style={styles.actionIcon}>
+                    <Ionicons name="map-outline" size={24} color={colors.text} />
+                  </View>
+                  <Text style={styles.actionText}>Ver en Mapa</Text>
                 </TouchableOpacity>
               </View>
             </View>

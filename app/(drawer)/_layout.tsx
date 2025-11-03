@@ -8,10 +8,11 @@ import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { useAuth } from "../context/AuthContext";
+import { Ionicons } from '@expo/vector-icons'; // ← Agregar este import
 
 const DrawerLayout = () => {
   const { colors } = useThemeColors();
-  const { setProfile, clearProfile, isAdmin } = useProfileStore(); // ✅ ahora usamos isAdmin
+  const { setProfile, clearProfile, isAdmin } = useProfileStore();
   const [loading, setLoading] = useState(true);
   const { logout } = useAuth();
 
@@ -30,7 +31,7 @@ const DrawerLayout = () => {
               currentUser.displayName ??
               currentUser.email ??
               null,
-            isAdmin: role === "admin", // ✅ guardamos rol
+            isAdmin: role === "admin",
           });
         } catch {
           clearProfile();
@@ -54,6 +55,7 @@ const DrawerLayout = () => {
         drawerContentStyle: { backgroundColor: colors.drawerBackground },
         drawerActiveTintColor: colors.primary,
         drawerInactiveTintColor: colors.muted,
+        drawerLabelStyle: { marginLeft: -20 },
       }}
       drawerContent={(props) => (
         <DrawerContentScrollView
@@ -62,24 +64,47 @@ const DrawerLayout = () => {
         >
           <DrawerItem
             label="Inicio"
+            icon={({ color, size }) => (
+              <Ionicons name="home-outline" size={size} color={color} />
+            )}
             onPress={() => props.navigation.navigate("(tabs)")}
             labelStyle={{ color: colors.text }}
           />
+          
+          {/* NUEVO: Item del Mapa */}
           <DrawerItem
-            label="Sobre la app"
-            onPress={() => props.navigation.navigate("about")}
+            label="Mapa General"
+            icon={({ color, size }) => (
+              <Ionicons name="map-outline" size={size} color={color} />
+            )}
+            onPress={() => props.navigation.navigate("map/general")}
             labelStyle={{ color: colors.text }}
           />
+          
           <DrawerItem
             label="Chat"
+            icon={({ color, size }) => (
+              <Ionicons name="chatbubble-outline" size={size} color={color} />
+            )}
             onPress={() => props.navigation.navigate("chats")}
             labelStyle={{ color: colors.text }}
           />
-
+          
+          <DrawerItem
+            label="Sobre la app"
+            icon={({ color, size }) => (
+              <Ionicons name="information-circle-outline" size={size} color={color} />
+            )}
+            onPress={() => props.navigation.navigate("about")}
+            labelStyle={{ color: colors.text }}
+          />
 
           {isAdmin && (
             <DrawerItem
               label="Moderación"
+              icon={({ color, size }) => (
+                <Ionicons name="shield-checkmark-outline" size={size} color={color} />
+              )}
               onPress={() => props.navigation.navigate("moderation/index")}
               labelStyle={{ color: colors.text }}
             />
@@ -87,6 +112,9 @@ const DrawerLayout = () => {
 
           <DrawerItem
             label="Cerrar sesión"
+            icon={({ color, size }) => (
+              <Ionicons name="log-out-outline" size={size} color="red" />
+            )}
             onPress={async () => {
               const res = await logout();
               if (res.success) {
@@ -104,15 +132,28 @@ const DrawerLayout = () => {
         name="(tabs)"
         options={{
           headerShown: false,
+          drawerLabel: "Inicio",
         }}
       />
+      
+      {/* NUEVO: Pantalla del Mapa */}
+      <Drawer.Screen
+        name="map/general"
+        options={{
+          title: "Mapa General",
+          drawerLabel: "Mapa General",
+          headerShown: true,
+        }}
+      />
+      
       <Drawer.Screen
         name="about"
         options={{
           title: "Sobre la app",
-          drawerLabel: "About",
+          drawerLabel: "Sobre la app",
         }}
       />
+      
       <Drawer.Screen
         name="chats"
         options={{
@@ -121,10 +162,9 @@ const DrawerLayout = () => {
         }}
       />
 
-
       {isAdmin && (
         <Drawer.Screen
-          name="moderationn"
+          name="moderation/index"
           options={{
             title: "Panel de Moderación",
             drawerLabel: "Moderación",
