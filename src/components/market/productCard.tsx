@@ -362,16 +362,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   <Text style={styles.profileButtonText}>Editar</Text>
                 </TouchableOpacity>
                 
-                {product.location && (
-                  <TouchableOpacity 
-                    style={[styles.profileButton, { backgroundColor: '#10b981' }]}
-                    onPress={handleEditLocation}
-                  >
-                    <Ionicons name="map" size={16} color="white" />
-                    <Text style={styles.profileButtonText}>Ubicación</Text>
-                  </TouchableOpacity>
-                )}
-                
                 <TouchableOpacity 
                   style={[styles.profileButton, { backgroundColor: '#ef4444' }]}
                   onPress={onDelete}

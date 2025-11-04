@@ -345,7 +345,8 @@ const ProductModal: FC<ProductModalProps> = ({ visible, product, onClose, TradeN
               <TouchableOpacity onPress={handleFavorite} style={styles.iconButton} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 <Animated.View style={{ transform: [{ scale: scaleFav }] }}>
                   <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={22} color={isFavorite ? '#ef4444' : colors.text} />
-                </Animated.View>              </TouchableOpacity>
+                </Animated.View>
+              </TouchableOpacity>
               <TouchableOpacity onPress={onClose} style={styles.closeButton} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 <Ionicons name="close" size={22} color={colors.text} />
 
